@@ -22,7 +22,7 @@ const save = (key, value) => {
 };
 
 // Seed data generation
-const JOB_STATUSES = ["active", "archived"];
+// const JOB_STATUSES = ["active", "archived"]; // Unused, commented out to fix lint error
 const CANDIDATE_STAGES = ["applied", "screen", "tech", "offer", "hired", "rejected"];
 
 function generateJobs(count = 25) {

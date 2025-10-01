@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link, Routes, Route, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 const STAGES = ["applied", "screen", "tech", "offer", "hired", "rejected"];
 
@@ -9,7 +9,7 @@ function Candidates() {
   const [stage, setStage] = useState("");
   const [page, setPage] = useState(1);
   const containerRef = useRef(null);
-  const navigate = useNavigate();
+  // const navigate = useNavigate(); // Unused, commented out to fix lint error
   const location = useLocation();
 
   useEffect(() => {
@@ -29,7 +29,7 @@ function Candidates() {
     setCandidates(pageData.data);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [search, stage, page]);
   useEffect(() => { const id = setTimeout(load, 300); return () => clearTimeout(id); }, [search, stage, page]);
 
   const byStage = useMemo(() => {

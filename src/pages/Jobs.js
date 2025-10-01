@@ -24,7 +24,7 @@ function Jobs() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [search, status, page]);
 
   useEffect(() => {
     const id = setTimeout(load, 300);
