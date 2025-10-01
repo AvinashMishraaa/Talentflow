@@ -334,8 +334,6 @@ export function CandidateProfile() {
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
     
     if (lastAtIndex !== -1) {
-      // Find the text after @ that we're replacing
-      const textAfterAt = textBeforeCursor.slice(lastAtIndex + 1);
       const newText = textBeforeCursor.slice(0, lastAtIndex) + `@${name} ` + textAfterCursor;
       setText(newText);
       setShowSuggestions(false);
