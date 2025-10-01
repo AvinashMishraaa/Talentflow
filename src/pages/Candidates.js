@@ -372,6 +372,9 @@ export function CandidateProfile() {
       case 'Escape':
         setShowSuggestions(false);
         break;
+      default:
+        // No action needed for other keys
+        break;
     }
   };
 

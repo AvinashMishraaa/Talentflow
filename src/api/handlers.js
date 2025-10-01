@@ -216,7 +216,7 @@ const initializeData = async () => {
     
     if (timelines && typeof timelines === 'object') {
       let changed = false;
-      for (const [id, list] of Object.entries(timelines)) {
+      for (const [, list] of Object.entries(timelines)) {
         if (Array.isArray(list)) {
           for (const entry of list) {
             if (entry.to === 'interview') { entry.to = 'tech'; changed = true; }
