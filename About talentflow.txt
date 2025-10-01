@@ -1,0 +1,47 @@
+TalentFlow Project Documentation
+
+Overview
+TalentFlow is an internal HR management tool designed for companies to
+streamline their hiring process. It provides a unified platform for job posting,
+candidate tracking, assessment management, and audit logging, all within a
+modern, user-friendly web application.
+
+
+=> Key Features
+
+1. Dashboard
+  Central hub for navigation and quick access to all major modules:
+  Jobs, Candidates, Assessments, and Audit Log.
+  Displays contact information and a summary of available features.
+
+2. Jobs Management
+  Create, edit, archive, and organize job postings.
+  Search and filter jobs by status and keywords.
+  Drag-and-drop functionality for reordering jobs based on priority.
+  All job-related actions are tracked in the audit log for compliance.
+
+3. Candidate Pipeline
+  Visual Kanban board for tracking candidates through each stage of the
+  hiring process (applied, screen, tech, offer, hired, rejected).
+  Drag-and-drop candidates between stages for easy workflow management.
+  Candidate profiles include timeline history and notes for collaboration.
+
+4. Assessment Builder & Catalog
+  Build custom assessments for each job role, supporting multiple question types.
+  Assign assessments to candidates and track completion.
+  Assessment assignments are logged for transparency.
+
+5. Audit Log
+  Comprehensive log of all major actions (job changes, candidate moves,
+  assessment assignments).
+  Ensures accountability and supports internal compliance requirements.
+
+
+Why Choose TalentFlow?
+TalentFlow empowers HR teams to manage the entire hiring lifecycle in one place.
+Its modern design, robust features, and transparent logging make it an ideal
+solution for companies seeking to improve their recruitment process and maintain
+compliance.
+
+For further customization or integration with existing systems, TalentFlow’s
+modular architecture allows easy extension and adaptation to your company’s needs.
