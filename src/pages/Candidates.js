@@ -52,9 +52,9 @@ const getButtonStyle = (stage) => {
 // Get available next stages based on current stage
 const getAvailableStages = (currentStage) => {
   const stageFlow = {
-    applied: ['screen', 'rejected'],
-    screen: ['tech', 'rejected'],
-    tech: ['offer', 'rejected'],
+    applied: ['screen', 'hired', 'rejected'],
+    screen: ['tech', 'hired', 'rejected'],
+    tech: ['offer', 'hired', 'rejected'],
     offer: ['hired', 'rejected'],
     hired: [], // No further actions
     rejected: [] // No further actions
@@ -130,11 +130,11 @@ function Candidates() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
           {visibleStages.map(stage => (
             <div className="card" key={stage} style={{ minHeight: 300 }}>
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>
+              <div style={{ marginBottom: 12, minHeight: 100, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: 8 }}>
+                <div style={{ fontWeight: 700, fontSize: 16, lineHeight: '24px', minHeight: 60, display: 'flex', alignItems: 'flex-start', paddingTop: 4 }}>
                   {getStageTitle(stage, byStage[stage]?.length || 0).title}
                 </div>
-                <div style={{ fontSize: 12, color: '#6b7280', fontStyle: 'italic' }}>
+                <div style={{ fontSize: 12, color: '#6b7280', fontStyle: 'italic', lineHeight: '16px', minHeight: 20 }}>
                   {getStageTitle(stage, byStage[stage]?.length || 0).subtitle}
                 </div>
               </div>
@@ -142,8 +142,8 @@ function Candidates() {
                 scrollParentRef={containerRef}
                 items={byStage[stage] || []}
                 renderItem={(c) => (
-                  <li key={c.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10, background: "var(--bg)", height: 88, boxSizing: 'border-box' }} draggable onDragStart={(e) => e.dataTransfer.setData('id', String(c.id))} onDragOver={(e) => e.preventDefault()} onDrop={(e) => move(Number(e.dataTransfer.getData('id')), stage)}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  <li key={c.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10, background: "var(--bg)", height: 120, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }} draggable onDragStart={(e) => e.dataTransfer.setData('id', String(c.id))} onDragOver={(e) => e.preventDefault()} onDrop={(e) => move(Number(e.dataTransfer.getData('id')), stage)}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
                       <div style={{ 
                         width: 40, 
                         height: 40, 
@@ -163,7 +163,7 @@ function Candidates() {
                         <div className="muted" style={{ fontSize: 12 }}>{c.email}</div>
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: 6, flexWrap: 'wrap' }}>
+                    <div style={{ display: "flex", gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
                       {getAvailableStages(stage).map(s => (
                         <button 
                           key={s} 
@@ -191,18 +191,18 @@ function Candidates() {
         <div style={{ display: "grid", gridTemplateColumns: `repeat(${visibleStages.length}, 1fr)`, gap: 12 }}>
           {visibleStages.map(stage => (
             <div className="card" key={stage} style={{ minHeight: 300 }}>
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>
+              <div style={{ marginBottom: 12, minHeight: 100, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: 8 }}>
+                <div style={{ fontWeight: 700, fontSize: 16, lineHeight: '24px', minHeight: 60, display: 'flex', alignItems: 'flex-start', paddingTop: 4 }}>
                   {getStageTitle(stage, byStage[stage]?.length || 0).title}
                 </div>
-                <div style={{ fontSize: 12, color: '#6b7280', fontStyle: 'italic' }}>
+                <div style={{ fontSize: 12, color: '#6b7280', fontStyle: 'italic', lineHeight: '16px', minHeight: 20 }}>
                   {getStageTitle(stage, byStage[stage]?.length || 0).subtitle}
                 </div>
               </div>
-              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 8 }}>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 8, alignItems: "stretch" }}>
                 {(byStage[stage] || []).map(c => (
-                  <li key={c.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10, background: "var(--bg)" }} draggable onDragStart={(e) => e.dataTransfer.setData('id', String(c.id))} onDragOver={(e) => e.preventDefault()} onDrop={(e) => move(Number(e.dataTransfer.getData('id')), stage)}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  <li key={c.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10, background: "var(--bg)", height: 120, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }} draggable onDragStart={(e) => e.dataTransfer.setData('id', String(c.id))} onDragOver={(e) => e.preventDefault()} onDrop={(e) => move(Number(e.dataTransfer.getData('id')), stage)}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
                       <div style={{ 
                         width: 40, 
                         height: 40, 
@@ -222,7 +222,7 @@ function Candidates() {
                         <div className="muted" style={{ fontSize: 12 }}>{c.email}</div>
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: 6, flexWrap: 'wrap' }}>
+                    <div style={{ display: "flex", gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
                       {getAvailableStages(stage).map(s => (
                         <button 
                           key={s} 
@@ -462,7 +462,7 @@ export function CandidateProfile() {
 }
 
 function VirtualizedCandidateList({ scrollParentRef, items, renderItem }) {
-  const ITEM_HEIGHT = 96; // include margins
+  const ITEM_HEIGHT = 128; // Updated to match new fixed height (120px + 8px gap)
   const [viewport, setViewport] = useState({ top: 0, height: 600 });
 
   useEffect(() => {
