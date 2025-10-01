@@ -186,6 +186,8 @@ export default Jobs;
 export function JobDetail() {
   const { jobId } = useParams();
   const [job, setJob] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState({ title: "", status: "active", tags: "" });
   useEffect(() => {
     fetch(`/jobs?page=1&pageSize=9999`).then(r=>r.json()).then(p=>{
       const all = p.data || [];
@@ -193,6 +195,21 @@ export function JobDetail() {
     });
   }, [jobId]);
   if (!job) return <div className="content"><div className="muted">Loading...</div></div>;
+  const openEdit = () => {
+    setForm({ title: job.title, status: job.status, tags: (job.tags||[]).join(', ') });
+    setShowModal(true);
+  };
+  const saveJob = async () => {
+    if (!form.title) { alert('Title required'); return; }
+    const payload = { title: form.title, status: form.status, tags: form.tags ? form.tags.split(',').map(t=>t.trim()).filter(Boolean) : [] };
+    const res = await fetch(`/jobs/${job.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    if (!res.ok) { alert('Server error, try again'); return; }
+    setShowModal(false);
+    fetch(`/jobs?page=1&pageSize=9999`).then(r=>r.json()).then(p=>{
+      const all = p.data || [];
+      setJob(all.find(j=>String(j.id)===String(jobId))||null);
+    });
+  };
   return (
     <div className="content">
       <h2>{job.title}</h2>
@@ -200,7 +217,28 @@ export function JobDetail() {
         <div>Status: <strong>{job.status}</strong></div>
         <div className="muted">Tags: {job.tags?.join(', ') || '—'}</div>
         <div className="muted">Order: {job.order}</div>
+        <button className="icon-btn" style={{ marginTop: 16 }} onClick={openEdit}>Edit</button>
       </div>
+      {showModal && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.3)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:50 }} onClick={() => setShowModal(false)}>
+          <div className="card" style={{ width: 420, background: 'var(--bg)' }} onClick={e=>e.stopPropagation()}>
+            <h3 style={{ margin:'0 0 8px 0' }}>Edit Job</h3>
+            <div style={{ display:'grid', gap:8 }}>
+              <input className="search" placeholder="Title" value={form.title} onChange={e=>setForm({ ...form, title: e.target.value })} />
+              <select className="search" value={form.status} onChange={e=>setForm({ ...form, status: e.target.value })}>
+                <option value="active">Active</option>
+                <option value="archived">Archived</option>
+              </select>
+              <input className="search" placeholder="Tags (comma separated)" value={form.tags} onChange={e=>setForm({ ...form, tags: e.target.value })} />
+              <div className="muted">Slug: {form.title ? form.title.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') : '—'}</div>
+            </div>
+            <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:12 }}>
+              <button className="icon-btn" style={{ width:'auto', padding:'0 10px' }} onClick={()=>setShowModal(false)}>Cancel</button>
+              <button className="icon-btn" style={{ width:'auto', padding:'0 10px' }} onClick={saveJob}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

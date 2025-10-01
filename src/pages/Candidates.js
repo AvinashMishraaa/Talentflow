@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 
 const STAGES = ["applied", "screen", "tech", "offer", "hired", "rejected"];
 
@@ -7,7 +7,7 @@ function Candidates() {
   const [candidates, setCandidates] = useState([]);
   const [search, setSearch] = useState("");
   const [stage, setStage] = useState("");
-  const [page, setPage] = useState(1);
+  // Pagination removed
   const containerRef = useRef(null);
   // Removed unused navigate to fix lint error
   const location = useLocation();
@@ -18,19 +18,18 @@ function Candidates() {
     setSearch(s);
   }, [location.search]);
 
-  const load = async () => {
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    if (stage) params.set("stage", stage);
-    params.set("page", String(page));
-    params.set("pageSize", "50");
+  const load = React.useCallback(async () => {
+    const params = new URLSearchParams(); 
+  if (search) params.set("search", search);
+  if (stage) params.set("stage", stage);
+  params.set("pageSize", "2000"); // Large enough to show all
     const res = await fetch(`/candidates?${params.toString()}`);
     const pageData = await res.json();
     setCandidates(pageData.data);
-  };
+  }, [search, stage]);
 
-  useEffect(() => { load(); }, [load, search, stage, page]);
-  useEffect(() => { const id = setTimeout(load, 300); return () => clearTimeout(id); }, [load, search, stage, page]);
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => { const id = setTimeout(load, 300); return () => clearTimeout(id); }, [load]);
 
   const byStage = useMemo(() => {
     const map = Object.fromEntries(STAGES.map(s => [s, []]));
@@ -60,7 +59,7 @@ function Candidates() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <h2 style={{ margin: 0 }}>Candidates</h2>
         <div style={{ display: "flex", gap: 8 }}>
-          <select className="search" style={{ width: 160 }} value={stage} onChange={e => { setStage(e.target.value); setPage(1); }}>
+          <select className="search" style={{ width: 160 }} value={stage} onChange={e => setStage(e.target.value)}>
             <option value="">All stages</option>
             {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
@@ -77,7 +76,7 @@ function Candidates() {
                 scrollParentRef={containerRef}
                 items={byStage[stage] || []}
                 renderItem={(c) => (
-                <li key={c.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10, background: "var(--bg)", height: 88, boxSizing: 'border-box' }} draggable onDragStart={(e) => e.dataTransfer.setData('id', String(c.id))} onDragOver={(e) => e.preventDefault()} onDrop={(e) => move(Number(e.dataTransfer.getData('id')), stage)}>
+                  <li key={c.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10, background: "var(--bg)", height: 88, boxSizing: 'border-box' }} draggable onDragStart={(e) => e.dataTransfer.setData('id', String(c.id))} onDragOver={(e) => e.preventDefault()} onDrop={(e) => move(Number(e.dataTransfer.getData('id')), stage)}>
                     <div style={{ fontWeight: 600 }}><Link to={`/candidates/${c.id}`}>{c.name}</Link></div>
                     <div className="muted" style={{ fontSize: 12 }}>{c.email}</div>
                     <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
@@ -113,10 +112,6 @@ function Candidates() {
           ))}
         </div>
       )}
-      <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 12 }}>
-        <button className="icon-btn" style={{ width: "auto", padding: "0 10px" }} onClick={() => setPage(p => Math.max(1, p - 1))}>Prev</button>
-        <button className="icon-btn" style={{ width: "auto", padding: "0 10px" }} onClick={() => setPage(p => p + 1)}>Next</button>
-      </div>
     </div>
   );
 }

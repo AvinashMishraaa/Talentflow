@@ -60,6 +60,8 @@ function NavItem({ to, label, icon }) {
 
 function Topbar() {
   const [term, setTerm] = useState("");
+  const [results, setResults] = useState([]);
+  const [showResults, setShowResults] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem("tf_theme") || "light");
   const [showNotif, setShowNotif] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -89,16 +91,69 @@ function Topbar() {
     return () => document.removeEventListener('click', onDocClick);
   }, []);
 
-  const onKeyDown = (e) => {
-    if (e.key === "Enter") {
-      navigate(`/candidates?search=${encodeURIComponent(term)}`);
+  useEffect(() => {
+    if (!term.trim()) {
+      setResults([]);
+      setShowResults(false);
+      return;
     }
-  };
+    let active = true;
+    (async () => {
+      const [jobsRes, candidatesRes] = await Promise.all([
+        fetch(`/jobs?search=${encodeURIComponent(term)}&page=1&pageSize=5`),
+        fetch(`/candidates?search=${encodeURIComponent(term)}&page=1&pageSize=5`)
+      ]);
+      const jobs = (await jobsRes.json()).data || [];
+      const candidates = (await candidatesRes.json()).data || [];
+      if (active) {
+        setResults([
+          ...jobs.map(j => ({ type: "job", id: j.id, title: j.title })),
+          ...candidates.map(c => ({ type: "candidate", id: c.id, name: c.name }))
+        ]);
+        setShowResults(true);
+      }
+    })();
+    return () => { active = false; };
+  }, [term]);
 
   return (
-    <header className="topbar">
+    <header className="topbar" style={{ position: 'relative' }}>
       {location.pathname === '/' ? (
-        <input className="search" placeholder="Search jobs, candidates..." value={term} onChange={e => setTerm(e.target.value)} onKeyDown={onKeyDown} />
+        <div style={{ position: 'relative', width: '100%' }}>
+          <input
+            className="search"
+            placeholder="Search jobs, candidates..."
+            value={term}
+            onChange={e => { setTerm(e.target.value); setShowResults(true); }}
+            onFocus={() => term && setShowResults(true)}
+            style={{ width: '100%' }}
+          />
+          {showResults && results.length > 0 && (
+            <div style={{ position: 'absolute', top: 48, left: 0, right: 0, background: 'white', border: '1px solid #eee', borderRadius: 8, zIndex: 100, maxHeight: 300, overflowY: 'auto', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                {results.map((r, i) => (
+                  <li key={r.type + '-' + r.id} style={{ padding: '10px 16px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}
+                      onClick={() => {
+                        setShowResults(false);
+                        setTerm("");
+                        if (r.type === "job") navigate(`/jobs/${r.id}`);
+                        else navigate(`/candidates/${r.id}`);
+                      }}>
+                    {r.type === "job" ? <span style={{ color: '#2563eb', fontWeight: 600 }}>Job:</span> : <span style={{ color: '#059669', fontWeight: 600 }}>Candidate:</span>} {r.title || r.name}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {/* Click outside to close */}
+          {showResults && (
+            <div
+              style={{ position: 'fixed', inset: 0, zIndex: 99, background: 'transparent' }}
+              onClick={() => setShowResults(false)}
+              tabIndex={-1}
+            />
+          )}
+        </div>
       ) : (
         <div style={{ flex: 1 }} />
       )}
