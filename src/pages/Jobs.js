@@ -10,6 +10,8 @@ function Jobs() {
   const [totalPages, setTotalPages] = useState(1);
   const dragFromOrder = useRef(null);
   const [error, setError] = useState("");
+  const [draggedItem, setDraggedItem] = useState(null);
+  const [dragOverItem, setDragOverItem] = useState(null);
 
   const load = React.useCallback(() => {
     setLoading(true);
@@ -84,23 +86,74 @@ function Jobs() {
     load();
   };
 
-  const beginDrag = (order) => (e) => { dragFromOrder.current = order; };
+  const beginDrag = (order, job) => (e) => { 
+    dragFromOrder.current = order; 
+    setDraggedItem(job.id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+  const handleDragOver = (order, id) => (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverItem(id);
+  };
+
+  const handleDragLeave = (e) => {
+    // Only clear if we're leaving the entire item, not just a child element
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setDragOverItem(null);
+    }
+  };
+
   const dropOn = (order, id) => async (e) => {
     e.preventDefault();
+    setDraggedItem(null);
+    setDragOverItem(null);
     const fromOrder = dragFromOrder.current;
     const toOrder = order;
     if (fromOrder == null || fromOrder === toOrder) return;
+    
     // optimistic reorder locally
     const previous = [...jobs];
     const list = [...jobs].sort((a,b)=>a.order-b.order);
     const fromIdx = list.findIndex(j=>j.order===fromOrder);
     const [moved] = list.splice(fromIdx,1);
-    const toIdx = list.findIndex(j=>j.order===toOrder);
-    list.splice(toIdx,0,moved);
+    
+    // Calculate correct insertion index
+    let toIdx = list.findIndex(j=>j.order===toOrder);
+    
+    // If dragging down (fromOrder < toOrder), insert after the target
+    if (fromOrder < toOrder) {
+      toIdx = toIdx + 1;
+    }
+    
+    list.splice(toIdx, 0, moved);
     list.forEach((j,i)=>j.order=i+1);
     setJobs(list);
-    const res = await fetch(`/jobs/${id}/reorder`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fromOrder, toOrder }) });
-    if (!res.ok) { setJobs(previous); setError('Reorder failed (rolled back)'); setTimeout(()=>setError(''),2000); }
+    
+    try {
+      const res = await fetch(`/jobs/${id}/reorder`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fromOrder, toOrder }) });
+      if (!res.ok) throw new Error('Server error');
+      
+      // Audit log for successful reorder
+      const log = JSON.parse(localStorage.getItem("tf_audit_log") || "[]");
+      log.unshift({
+        action: "Job Reordered",
+        details: `Job moved from position ${fromOrder} to ${toOrder}`,
+        timestamp: Date.now()
+      });
+      localStorage.setItem("tf_audit_log", JSON.stringify(log.slice(0, 100)));
+    } catch (err) {
+      setJobs(previous); 
+      setError('Reorder failed (rolled back)'); 
+      setTimeout(()=>setError(''),3000);
+    }
+    
+    dragFromOrder.current = null;
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItem(null);
+    setDragOverItem(null);
     dragFromOrder.current = null;
   };
 
@@ -128,8 +181,29 @@ function Jobs() {
           <div className="muted">Loading...</div>
         ) : (
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            {jobs.sort((a,b)=>a.order-b.order).map(job => (
-              <li key={job.id} draggable onDragStart={beginDrag(job.order)} onDragOver={(e)=>e.preventDefault()} onDrop={dropOn(job.order, job.id)} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #f1f5f9" }}>
+            {jobs.sort((a,b)=>a.order-b.order).map(job => {
+              const isDragging = draggedItem === job.id;
+              const isDragOver = dragOverItem === job.id;
+              return (
+              <li 
+                key={job.id} 
+                draggable 
+                onDragStart={beginDrag(job.order, job)} 
+                onDragOver={handleDragOver(job.order, job.id)}
+                onDragLeave={handleDragLeave}
+                onDrop={dropOn(job.order, job.id)}
+                onDragEnd={handleDragEnd}
+                style={{ 
+                  display: "flex", 
+                  justifyContent: "space-between", 
+                  padding: "10px 0", 
+                  borderBottom: "1px solid #f1f5f9",
+                  opacity: isDragging ? 0.5 : 1,
+                  backgroundColor: isDragOver ? '#f0f9ff' : 'transparent',
+                  borderLeft: isDragOver ? '3px solid #3b82f6' : '3px solid transparent',
+                  transition: 'all 0.2s ease',
+                  cursor: 'move'
+                }}>
                 <div>
                   <div style={{ fontWeight: 600 }}><Link to={`/jobs/${job.id}`}>{job.title}</Link></div>
                   <div className="muted" style={{ fontSize: 12 }}>{job.tags?.join(", ")}</div>
@@ -140,11 +214,25 @@ function Jobs() {
                   {job.status === "active" ? (
                     <button onClick={() => archiveJob(job.id)} className="icon-btn" style={{ width: "auto", padding: "0 10px" }}>Archive</button>
                   ) : (
-                    <button onClick={() => fetch(`/jobs/${job.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status:'active' }) }).then(load)} className="icon-btn" style={{ width: "auto", padding: "0 10px" }}>Unarchive</button>
+                    <button onClick={async () => {
+                      await fetch(`/jobs/${job.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status:'active' }) });
+                      // Audit log entry for unarchive
+                      try {
+                        const log = JSON.parse(localStorage.getItem("tf_audit_log") || "[]");
+                        log.unshift({
+                          action: "Job Unarchived",
+                          details: `Job '${job.title}' (ID ${job.id}) unarchived`,
+                          timestamp: Date.now()
+                        });
+                        localStorage.setItem("tf_audit_log", JSON.stringify(log.slice(0, 100)));
+                      } catch {}
+                      load();
+                    }} className="icon-btn" style={{ width: "auto", padding: "0 10px" }}>Unarchive</button>
                   )}
                 </div>
               </li>
-            ))}
+            );
+            })}
           </ul>
         )}
       </div>
