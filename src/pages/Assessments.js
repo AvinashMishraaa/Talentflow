@@ -141,6 +141,7 @@ function Assessments() {
               <ul style={{ listStyle:'none', padding:0 }}>
                 {section.questions.map(q => (
                   <li key={q.id} style={{ border:'1px solid #e5e7eb', borderRadius: 10, padding: 10, marginTop: 8 }}>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>ID: {q.id}</div>
                     <input className="search" placeholder="Question text" value={q.text} onChange={e => onChangeQuestion(section.id, q.id, { text: e.target.value })} />
                     {['single','multi'].includes(q.type) && (
                       <>
@@ -265,7 +266,7 @@ function AssessmentPreview({ builder, jobId, submitting, setSubmitting, showScor
 }
 
 function blankQuestion(type) {
-  const id = `q${Math.random().toString(36).slice(2,8)}`;
+  const id = `q${Date.now().toString(36).slice(-4)}`;  // Shorter, more readable IDs
   const base = { id, type, text: '', required: false, options: [], min: undefined, max: undefined, maxLength: undefined, showIf: '' };
   if (type === 'single' || type === 'multi') base.options = ['Yes', 'No'];
   if (type === 'number') { base.min = 0; base.max = 100; }

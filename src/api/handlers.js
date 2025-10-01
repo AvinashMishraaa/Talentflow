@@ -1,24 +1,49 @@
 import { http, HttpResponse, delay } from "msw";
 import localforage from "localforage";
 
-// Simple persistence helpers
-const load = (key, fallback) => {
+// Enhanced persistence helpers with IndexedDB fallback
+const load = async (key, fallback) => {
+  try {
+    // First try localStorage (fast synchronous access)
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      return JSON.parse(raw);
+    }
+    
+    // Fallback to IndexedDB if localStorage is empty
+    const indexedValue = await localforage.getItem(key);
+    if (indexedValue !== null) {
+      // Restore to localStorage for future fast access
+      localStorage.setItem(key, JSON.stringify(indexedValue));
+      return indexedValue;
+    }
+    
+    return fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const save = async (key, value) => {
+  try {
+    // Primary storage: localStorage for fast access
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {}
+  
+  try {
+    // Write-through to IndexedDB for persistence
+    await localforage.setItem(key, value);
+  } catch {}
+};
+
+// Synchronous version for compatibility with existing code
+const loadSync = (key, fallback) => {
   try {
     const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : fallback;
   } catch {
     return fallback;
   }
-};
-const save = (key, value) => {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {}
-  // write-through to IndexedDB
-  try {
-    // fire-and-forget
-    localforage.setItem(key, value);
-  } catch {}
 };
 
 // Seed data generation
@@ -131,53 +156,103 @@ function generateAssessments() {
 }
 
 const SEED_VERSION = 3;
-let jobsData = load("tf_jobs", null);
-let candidatesData = load("tf_candidates", null);
-let assessmentsData = load("tf_assessments", null);
-let timelines = load("tf_timelines", null);
-let notesStore = load("tf_notes", null);
-let seedVersion = load("tf_seed_version", 0);
-let assignedStore = load("tf_assigned", null);
 
-if (!jobsData || !candidatesData || !assessmentsData || !timelines || !notesStore || !assignedStore || seedVersion !== SEED_VERSION || (Array.isArray(assessmentsData) && (assessmentsData.length < 5 || (assessmentsData[0]?.questions?.length || 0) < 10))) {
-  jobsData = generateJobs(25);
-  candidatesData = generateCandidates(jobsData, 1000);
-  assessmentsData = generateAssessments();
-  timelines = Object.fromEntries(candidatesData.map(c => [c.id, [{ id: `${c.id}-0`, at: Date.now() - 86400000, from: null, to: c.stage }]]));
-  notesStore = {};
-  assignedStore = {};
-  save("tf_jobs", jobsData);
-  save("tf_candidates", candidatesData);
-  save("tf_assessments", assessmentsData);
-  save("tf_timelines", timelines);
-  save("tf_notes", notesStore);
-  save("tf_assigned", assignedStore);
-  save("tf_seed_version", SEED_VERSION);
-}
+// Initialize data stores - will be populated asynchronously
+let jobsData = null;
+let candidatesData = null;
+let assessmentsData = null;
+let timelines = null;
+let notesStore = null;
+let seedVersion = 0;
+let assignedStore = null;
+let dataInitialized = false;
 
-// Migrations: rename 'interview' stage to 'tech' if present in stored data
-if (Array.isArray(candidatesData)) {
-  let changed = false;
-  for (const c of candidatesData) {
-    if (c.stage === 'interview') { c.stage = 'tech'; changed = true; }
-  }
-  if (changed) {
-    save("tf_candidates", candidatesData);
-  }
-}
-if (timelines && typeof timelines === 'object') {
-  let changed = false;
-  for (const key of Object.keys(timelines)) {
-    const list = timelines[key];
-    if (Array.isArray(list)) {
-      for (const t of list) {
-        if (t.from === 'interview') { t.from = 'tech'; changed = true; }
-        if (t.to === 'interview') { t.to = 'tech'; changed = true; }
+// Async initialization function
+const initializeData = async () => {
+  if (dataInitialized) return;
+  
+  try {
+    // Load all data from persistence layer (localStorage -> IndexedDB fallback)
+    jobsData = await load("tf_jobs", null);
+    candidatesData = await load("tf_candidates", null);
+    assessmentsData = await load("tf_assessments", null);
+    timelines = await load("tf_timelines", null);
+    notesStore = await load("tf_notes", null);
+    seedVersion = await load("tf_seed_version", 0);
+    assignedStore = await load("tf_assigned", null);
+    
+    // Generate seed data if needed
+    if (!jobsData || !candidatesData || !assessmentsData || !timelines || !notesStore || !assignedStore || seedVersion !== SEED_VERSION || (Array.isArray(assessmentsData) && (assessmentsData.length < 5 || (assessmentsData[0]?.questions?.length || 0) < 10))) {
+      console.log('Generating seed data...');
+      jobsData = generateJobs(25);
+      candidatesData = generateCandidates(jobsData, 1000);
+      assessmentsData = generateAssessments();
+      timelines = Object.fromEntries(candidatesData.map(c => [c.id, [{ id: `${c.id}-0`, at: Date.now() - 86400000, from: null, to: c.stage }]]));
+      notesStore = {};
+      assignedStore = {};
+      
+      // Save all seed data
+      await Promise.all([
+        save("tf_jobs", jobsData),
+        save("tf_candidates", candidatesData),
+        save("tf_assessments", assessmentsData),
+        save("tf_timelines", timelines),
+        save("tf_notes", notesStore),
+        save("tf_assigned", assignedStore),
+        save("tf_seed_version", SEED_VERSION)
+      ]);
+    }
+    
+    // Handle data migrations
+    if (Array.isArray(candidatesData)) {
+      let changed = false;
+      for (const c of candidatesData) {
+        if (c.stage === 'interview') { c.stage = 'tech'; changed = true; }
+      }
+      if (changed) {
+        await save("tf_candidates", candidatesData);
       }
     }
+    
+    if (timelines && typeof timelines === 'object') {
+      let changed = false;
+      for (const [id, list] of Object.entries(timelines)) {
+        if (Array.isArray(list)) {
+          for (const entry of list) {
+            if (entry.to === 'interview') { entry.to = 'tech'; changed = true; }
+            if (entry.from === 'interview') { entry.from = 'tech'; changed = true; }
+          }
+        }
+      }
+      if (changed) {
+        await save("tf_timelines", timelines);
+      }
+    }
+    
+    dataInitialized = true;
+    console.log('Data initialization complete. Restored from:', 
+      localStorage.getItem('tf_jobs') ? 'localStorage' : 'IndexedDB');
+  } catch (error) {
+    console.error('Failed to initialize data:', error);
+    // Fallback to sync loading if async fails
+    jobsData = loadSync("tf_jobs", null) || generateJobs(25);
+    candidatesData = loadSync("tf_candidates", null) || generateCandidates(jobsData, 1000);
+    assessmentsData = loadSync("tf_assessments", null) || generateAssessments();
+    timelines = loadSync("tf_timelines", null) || {};
+    notesStore = loadSync("tf_notes", null) || {};
+    assignedStore = loadSync("tf_assigned", null) || {};
+    dataInitialized = true;
   }
-  if (changed) save("tf_timelines", timelines);
-}
+};
+
+// Ensure data is initialized before any API calls
+const ensureDataInitialized = async () => {
+  if (!dataInitialized) {
+    await initializeData();
+  }
+};
+
+// Data initialization is now handled by the async initializeData() function
 
 function filteredJobs(params) {
   let list = [...jobsData];
@@ -235,6 +310,7 @@ export const handlers = [
   }),
   // Jobs
   http.get("/jobs", async ({ request }) => {
+    await ensureDataInitialized();
     await delay(200);
     const url = new URL(request.url);
     const params = Object.fromEntries(url.searchParams.entries());
@@ -244,6 +320,7 @@ export const handlers = [
   }),
 
   http.post("/jobs", async ({ request }) => {
+    await ensureDataInitialized();
     const body = await request.json();
     const title = body.title || "Untitled Job";
     const slug = generateUniqueSlug(title);
@@ -266,6 +343,7 @@ export const handlers = [
   }),
 
   http.patch("/jobs/:id", async ({ params, request }) => {
+    await ensureDataInitialized();
     const id = Number(params.id);
     const body = await request.json();
     const idx = jobsData.findIndex(j => j.id === id);
@@ -283,6 +361,7 @@ export const handlers = [
   }),
 
   http.patch("/jobs/:id/reorder", async ({ request }) => {
+    await ensureDataInitialized();
     const { fromOrder, toOrder } = await request.json();
     const list = jobsData.sort((a, b) => a.order - b.order);
     const fromIdx = list.findIndex(j => j.order === fromOrder);
@@ -301,18 +380,26 @@ export const handlers = [
 
   // Candidates
   http.get("/candidates", async ({ request }) => {
+    await ensureDataInitialized();
     await delay(200);
     const url = new URL(request.url);
     const params = Object.fromEntries(url.searchParams.entries());
     let list = [...candidatesData];
     if (params.stage) list = list.filter(c => c.stage === params.stage);
-    if (params.search) list = list.filter(c => c.name.toLowerCase().includes(params.search.toLowerCase()));
+    if (params.search) {
+      const searchTerm = params.search.toLowerCase();
+      list = list.filter(c => 
+        c.name.toLowerCase().includes(searchTerm) || 
+        c.email.toLowerCase().includes(searchTerm)
+      );
+    }
     if (params.jobId) list = list.filter(c => String(c.jobId) === String(params.jobId));
     const page = paginate(list, params.page, params.pageSize || 40);
     return HttpResponse.json(page);
   }),
 
   http.post("/candidates", async ({ request }) => {
+    await ensureDataInitialized();
     const body = await request.json();
     const newCandidate = {
       id: Math.max(0, ...candidatesData.map(c => c.id)) + 1,
@@ -331,6 +418,7 @@ export const handlers = [
   }),
 
   http.patch("/candidates/:id", async ({ params, request }) => {
+    await ensureDataInitialized();
     const id = Number(params.id);
     const body = await request.json();
     const idx = candidatesData.findIndex(c => c.id === id);
@@ -351,6 +439,7 @@ export const handlers = [
   }),
 
   http.get("/candidates/:id/timeline", async ({ params }) => {
+    await ensureDataInitialized();
     await delay(150);
     const id = Number(params.id);
     return HttpResponse.json(timelines[id] || []);
@@ -358,11 +447,13 @@ export const handlers = [
 
   // Candidate notes
   http.get("/candidates/:id/notes", async ({ params }) => {
+    await ensureDataInitialized();
     await delay(120);
     const id = Number(params.id);
     return HttpResponse.json(notesStore[id] || []);
   }),
   http.post("/candidates/:id/notes", async ({ params, request }) => {
+    await ensureDataInitialized();
     const id = Number(params.id);
     const body = await request.json();
     const list = notesStore[id] || [];
@@ -376,11 +467,13 @@ export const handlers = [
 
   // Assessments
   http.get("/assessments", async () => {
+    await ensureDataInitialized();
     await delay(150);
     return HttpResponse.json(assessmentsData);
   }),
 
   http.get("/assessments/:jobId", async ({ params }) => {
+    await ensureDataInitialized();
     await delay(150);
     const jobId = Number(params.jobId);
     // Only return assessments specifically saved for this jobId.
@@ -420,6 +513,7 @@ export const handlers = [
   }),
 
   http.put("/assessments/:jobId", async ({ params, request }) => {
+    await ensureDataInitialized();
     const jobId = Number(params.jobId);
     const body = await request.json();
     const idx = assessmentsData.findIndex(a => a.jobId === jobId);
@@ -433,18 +527,20 @@ export const handlers = [
   }),
 
   http.post("/assessments/:jobId/submit", async ({ params, request }) => {
+    await ensureDataInitialized();
     const jobId = Number(params.jobId);
     const body = await request.json();
     const key = `tf_assessment_submit_${jobId}`;
-    const list = load(key, []);
+    const list = loadSync(key, []);
     list.push({ at: Date.now(), ...body });
-    save(key, list);
+    await save(key, list);
     await delay(200);
     return HttpResponse.json({ ok: true });
   }),
 
   // Assign assessments to candidates
   http.post("/assessments/:id/assign", async ({ params, request }) => {
+    await ensureDataInitialized();
     const id = Number(params.id);
     const body = await request.json();
     const candidateId = Number(body.candidateId);
@@ -460,6 +556,7 @@ export const handlers = [
   }),
 
   http.get("/candidates/:id/assignments", async ({ params }) => {
+    await ensureDataInitialized();
     const id = Number(params.id);
     const list = assignedStore[id] || [];
     const detailed = list.map(item => {

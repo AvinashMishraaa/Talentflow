@@ -63,7 +63,7 @@ function Candidates() {
             <option value="">All stages</option>
             {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          <input className="search" placeholder="Search candidates" value={search} onChange={e => setSearch(e.target.value)} style={{ width: 320 }} />
+          <input className="search" placeholder="Search by name or email" value={search} onChange={e => setSearch(e.target.value)} style={{ width: 320 }} />
         </div>
       </div>
 
@@ -81,7 +81,7 @@ function Candidates() {
                     <div className="muted" style={{ fontSize: 12 }}>{c.email}</div>
                     <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
                       {STAGES.filter(s => s !== stage).map(s => (
-                        <button key={s} className="icon-btn" style={{ width: "auto", padding: "0 8px" }} onClick={() => move(c.id, s)}>{s}</button>
+                        <button key={s} className="icon-btn" style={{ width: "auto", padding: "0 8px" }} onClick={() => move(c.id, s)}>{s.charAt(0).toUpperCase() + s.slice(1)}</button>
                       ))}
                     </div>
                   </li>
@@ -102,7 +102,7 @@ function Candidates() {
                     <div className="muted" style={{ fontSize: 12 }}>{c.email}</div>
                     <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
                       {STAGES.filter(s => s !== stage).map(s => (
-                        <button key={s} className="icon-btn" style={{ width: "auto", padding: "0 8px" }} onClick={() => move(c.id, s)}>{s}</button>
+                        <button key={s} className="icon-btn" style={{ width: "auto", padding: "0 8px" }} onClick={() => move(c.id, s)}>{s.charAt(0).toUpperCase() + s.slice(1)}</button>
                       ))}
                     </div>
                   </li>
@@ -124,7 +124,12 @@ export function CandidateProfile() {
   const [timeline, setTimeline] = useState([]);
   const [notes, setNotes] = useState([]);
   const [text, setText] = useState("");
-  const mentionOptions = ["@Alice", "@Bob", "@Carol", "@David", "@Eve"];
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestionPosition, setSuggestionPosition] = useState({ top: 0, left: 0 });
+  const [filteredSuggestions, setFilteredSuggestions] = useState([]);
+  const [activeSuggestion, setActiveSuggestion] = useState(0);
+  const inputRef = React.useRef(null);
+  const mentionOptions = ["Alice", "Bob", "Carol", "David", "Eve", "Frank", "Grace", "Henry"];
   useEffect(() => {
     fetch(`/candidates?search=&page=1&pageSize=1&id=${id}`);
     fetch(`/candidates`).then(r => r.json()).then(p => {
@@ -142,8 +147,110 @@ export function CandidateProfile() {
       const note = await res.json();
       setNotes(n => [note, ...n]);
       setText("");
+      setShowSuggestions(false);
     }
   };
+
+  const handleTextChange = (e) => {
+    const value = e.target.value;
+    setText(value);
+    
+    // Check for @ mentions
+    const cursorPos = e.target.selectionStart;
+    const textBeforeCursor = value.slice(0, cursorPos);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtIndex !== -1) {
+      const textAfterAt = textBeforeCursor.slice(lastAtIndex + 1);
+      // Only show suggestions if @ is at word boundary and no spaces after @
+      if (!textAfterAt.includes(' ') && (lastAtIndex === 0 || /\s/.test(textBeforeCursor[lastAtIndex - 1]))) {
+        const filtered = mentionOptions.filter(name => 
+          name.toLowerCase().includes(textAfterAt.toLowerCase())
+        );
+        
+        if (filtered.length > 0) {
+          setFilteredSuggestions(filtered);
+          setActiveSuggestion(0);
+          setShowSuggestions(true);
+          
+          // Calculate position for suggestions dropdown
+          const input = e.target;
+          const rect = input.getBoundingClientRect();
+          setSuggestionPosition({
+            top: rect.bottom + window.scrollY + 4,
+            left: rect.left + window.scrollX
+          });
+        } else {
+          setShowSuggestions(false);
+        }
+      } else {
+        setShowSuggestions(false);
+      }
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const insertMention = (name) => {
+    const cursorPos = inputRef.current.selectionStart;
+    const textBeforeCursor = text.slice(0, cursorPos);
+    const textAfterCursor = text.slice(cursorPos);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtIndex !== -1) {
+      const newText = textBeforeCursor.slice(0, lastAtIndex) + `@${name} ` + textAfterCursor;
+      setText(newText);
+      setShowSuggestions(false);
+      
+      // Focus back to input
+      setTimeout(() => {
+        inputRef.current.focus();
+        const newCursorPos = lastAtIndex + name.length + 2; // +2 for @ and space
+        inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+      }, 0);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (!showSuggestions) return;
+    
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setActiveSuggestion(prev => 
+          prev < filteredSuggestions.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setActiveSuggestion(prev => 
+          prev > 0 ? prev - 1 : filteredSuggestions.length - 1
+        );
+        break;
+      case 'Enter':
+      case 'Tab':
+        e.preventDefault();
+        if (filteredSuggestions[activeSuggestion]) {
+          insertMention(filteredSuggestions[activeSuggestion]);
+        }
+        break;
+      case 'Escape':
+        setShowSuggestions(false);
+        break;
+    }
+  };
+
+  // Close suggestions when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (inputRef.current && !inputRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   if (!candidate) return <div className="content"><div className="muted">Loading...</div></div>;
   return (
     <div className="content">
@@ -160,12 +267,51 @@ export function CandidateProfile() {
           ))}
         </ul>
         <div style={{ marginTop: 12, fontWeight: 700 }}>Notes</div>
-        <div style={{ display: 'flex', gap: 8, margin: '8px 0' }}>
-          <input className="search" placeholder="Write a note with @mentions" value={text} onChange={e=>setText(e.target.value)} list="mentions" />
+        <div style={{ display: 'flex', gap: 8, margin: '8px 0', position: 'relative' }}>
+          <input 
+            ref={inputRef}
+            className="search" 
+            placeholder="Write a note with @mentions" 
+            value={text} 
+            onChange={handleTextChange}
+            onKeyDown={handleKeyDown}
+          />
           <button className="icon-btn" style={{ width:'auto', padding:'0 10px' }} onClick={addNote}>Add</button>
-          <datalist id="mentions">
-            {mentionOptions.map(o => <option key={o} value={o} />)}
-          </datalist>
+          
+          {/* Custom suggestions dropdown */}
+          {showSuggestions && (
+            <div 
+              style={{
+                position: 'fixed',
+                top: suggestionPosition.top,
+                left: suggestionPosition.left,
+                background: 'white',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                zIndex: 1000,
+                minWidth: '150px',
+                maxHeight: '200px',
+                overflowY: 'auto'
+              }}
+            >
+              {filteredSuggestions.map((name, index) => (
+                <div
+                  key={name}
+                  onClick={() => insertMention(name)}
+                  style={{
+                    padding: '8px 12px',
+                    cursor: 'pointer',
+                    backgroundColor: index === activeSuggestion ? '#f3f4f6' : 'transparent',
+                    borderBottom: index < filteredSuggestions.length - 1 ? '1px solid #f1f5f9' : 'none'
+                  }}
+                  onMouseEnter={() => setActiveSuggestion(index)}
+                >
+                  @{name}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <ul style={{ listStyle: 'none', padding: 0 }}>
           {notes.map(n => (
