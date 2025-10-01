@@ -9,7 +9,7 @@ function Candidates() {
   const [stage, setStage] = useState("");
   const [page, setPage] = useState(1);
   const containerRef = useRef(null);
-  const navigate = useNavigate();
+  // Removed unused navigate to fix lint error
   const location = useLocation();
 
   useEffect(() => {
@@ -29,8 +29,8 @@ function Candidates() {
     setCandidates(pageData.data);
   };
 
-  useEffect(() => { load(); }, [search, stage, page]);
-  useEffect(() => { const id = setTimeout(load, 300); return () => clearTimeout(id); }, [search, stage, page]);
+  useEffect(() => { load(); }, [load, search, stage, page]);
+  useEffect(() => { const id = setTimeout(load, 300); return () => clearTimeout(id); }, [load, search, stage, page]);
 
   const byStage = useMemo(() => {
     const map = Object.fromEntries(STAGES.map(s => [s, []]));

@@ -210,7 +210,8 @@ function generateUniqueSlug(title, excludeId) {
   const base = slugify(title);
   let slug = base;
   let i = 1;
-  while (jobsData.some(j => (j.slug || slugify(j.title)) === slug && j.id !== excludeId)) {
+  const jobSlugs = jobsData.map(j => (j.slug || slugify(j.title)));
+  while (jobSlugs.includes(slug) && jobsData.some(j => j.id !== excludeId)) {
     slug = `${base}-${i++}`;
   }
   return slug;

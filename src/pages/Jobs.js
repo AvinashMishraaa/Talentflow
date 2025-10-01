@@ -11,7 +11,7 @@ function Jobs() {
   const dragFromOrder = useRef(null);
   const [error, setError] = useState("");
 
-  const load = () => {
+  const load = React.useCallback(() => {
     setLoading(true);
     const params = new URLSearchParams();
     if (search) params.set("search", search);
@@ -22,12 +22,12 @@ function Jobs() {
       .then(res => res.json())
       .then(data => { setJobs(data.data || []); setTotalPages(data.totalPages || 1); })
       .finally(() => setLoading(false));
-  };
+  }, [search, status, page]);
 
   useEffect(() => {
     const id = setTimeout(load, 300);
     return () => clearTimeout(id);
-  }, [search, status, page]);
+  }, [load]);
 
   const activeCount = useMemo(() => jobs.filter(j => j.status === "active").length, [jobs]);
 
