@@ -3,6 +3,65 @@ import { Link, useLocation, useParams } from "react-router-dom";
 
 const STAGES = ["applied", "screen", "tech", "offer", "hired", "rejected"];
 
+// Enhanced stage descriptions
+const getStageTitle = (stage, count) => {
+  const stageInfo = {
+    applied: { title: "📝 New Applications", subtitle: "Recently submitted candidates" },
+    screen: { title: "📞 Initial Screening", subtitle: "Phone/video interviews in progress" },
+    tech: { title: "💻 Technical Assessment", subtitle: "Coding challenges and technical interviews" },
+    offer: { title: "🤝 Offer Extended", subtitle: "Pending candidate acceptance" },
+    hired: { title: "✅ Successfully Hired", subtitle: "Onboarded team members" },
+    rejected: { title: "❌ Not Selected", subtitle: "Candidates not moving forward" }
+  };
+  
+  const info = stageInfo[stage] || { title: stage, subtitle: "" };
+  return {
+    title: `${info.title} (${count})`,
+    subtitle: info.subtitle
+  };
+};
+
+// Generate avatar initials from name
+const getInitials = (name) => {
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+};
+
+// Get avatar background color based on name
+const getAvatarColor = (name) => {
+  const colors = [
+    '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', 
+    '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1'
+  ];
+  const hash = name.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+  return colors[hash % colors.length];
+};
+
+// Get button style based on stage
+const getButtonStyle = (stage) => {
+  const styles = {
+    applied: { backgroundColor: '#dbeafe', color: '#1e40af', border: '1px solid #93c5fd' },
+    screen: { backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' },
+    tech: { backgroundColor: '#e0e7ff', color: '#3730a3', border: '1px solid #a5b4fc' },
+    offer: { backgroundColor: '#ecfdf5', color: '#065f46', border: '1px solid #6ee7b7' },
+    hired: { backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #86efac' },
+    rejected: { backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5' }
+  };
+  return styles[stage] || { backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db' };
+};
+
+// Get available next stages based on current stage
+const getAvailableStages = (currentStage) => {
+  const stageFlow = {
+    applied: ['screen', 'rejected'],
+    screen: ['tech', 'rejected'],
+    tech: ['offer', 'rejected'],
+    offer: ['hired', 'rejected'],
+    hired: [], // No further actions
+    rejected: [] // No further actions
+  };
+  return stageFlow[currentStage] || [];
+};
+
 function Candidates() {
   const [candidates, setCandidates] = useState([]);
   const [search, setSearch] = useState("");
@@ -71,17 +130,55 @@ function Candidates() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
           {visibleStages.map(stage => (
             <div className="card" key={stage} style={{ minHeight: 300 }}>
-              <div style={{ fontWeight: 700, textTransform: "capitalize", marginBottom: 8 }}>{stage} ({byStage[stage]?.length || 0})</div>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>
+                  {getStageTitle(stage, byStage[stage]?.length || 0).title}
+                </div>
+                <div style={{ fontSize: 12, color: '#6b7280', fontStyle: 'italic' }}>
+                  {getStageTitle(stage, byStage[stage]?.length || 0).subtitle}
+                </div>
+              </div>
               <VirtualizedCandidateList
                 scrollParentRef={containerRef}
                 items={byStage[stage] || []}
                 renderItem={(c) => (
                   <li key={c.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10, background: "var(--bg)", height: 88, boxSizing: 'border-box' }} draggable onDragStart={(e) => e.dataTransfer.setData('id', String(c.id))} onDragOver={(e) => e.preventDefault()} onDrop={(e) => move(Number(e.dataTransfer.getData('id')), stage)}>
-                    <div style={{ fontWeight: 600 }}><Link to={`/candidates/${c.id}`}>{c.name}</Link></div>
-                    <div className="muted" style={{ fontSize: 12 }}>{c.email}</div>
-                    <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                      {STAGES.filter(s => s !== stage).map(s => (
-                        <button key={s} className="icon-btn" style={{ width: "auto", padding: "0 8px" }} onClick={() => move(c.id, s)}>{s.charAt(0).toUpperCase() + s.slice(1)}</button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                      <div style={{ 
+                        width: 40, 
+                        height: 40, 
+                        borderRadius: '50%', 
+                        backgroundColor: getAvatarColor(c.name),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontWeight: 600,
+                        fontSize: 14
+                      }}>
+                        {getInitials(c.name)}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600 }}><Link to={`/candidates/${c.id}`}>{c.name}</Link></div>
+                        <div className="muted" style={{ fontSize: 12 }}>{c.email}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: 'wrap' }}>
+                      {getAvailableStages(stage).map(s => (
+                        <button 
+                          key={s} 
+                          onClick={() => move(c.id, s)}
+                          style={{
+                            ...getButtonStyle(s),
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            fontWeight: 500,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {s.charAt(0).toUpperCase() + s.slice(1)}
+                        </button>
                       ))}
                     </div>
                   </li>
@@ -94,15 +191,53 @@ function Candidates() {
         <div style={{ display: "grid", gridTemplateColumns: `repeat(${visibleStages.length}, 1fr)`, gap: 12 }}>
           {visibleStages.map(stage => (
             <div className="card" key={stage} style={{ minHeight: 300 }}>
-              <div style={{ fontWeight: 700, textTransform: "capitalize", marginBottom: 8 }}>{stage} ({byStage[stage]?.length || 0})</div>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>
+                  {getStageTitle(stage, byStage[stage]?.length || 0).title}
+                </div>
+                <div style={{ fontSize: 12, color: '#6b7280', fontStyle: 'italic' }}>
+                  {getStageTitle(stage, byStage[stage]?.length || 0).subtitle}
+                </div>
+              </div>
               <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 8 }}>
                 {(byStage[stage] || []).map(c => (
                   <li key={c.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10, background: "var(--bg)" }} draggable onDragStart={(e) => e.dataTransfer.setData('id', String(c.id))} onDragOver={(e) => e.preventDefault()} onDrop={(e) => move(Number(e.dataTransfer.getData('id')), stage)}>
-                    <div style={{ fontWeight: 600 }}><Link to={`/candidates/${c.id}`}>{c.name}</Link></div>
-                    <div className="muted" style={{ fontSize: 12 }}>{c.email}</div>
-                    <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                      {STAGES.filter(s => s !== stage).map(s => (
-                        <button key={s} className="icon-btn" style={{ width: "auto", padding: "0 8px" }} onClick={() => move(c.id, s)}>{s.charAt(0).toUpperCase() + s.slice(1)}</button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                      <div style={{ 
+                        width: 40, 
+                        height: 40, 
+                        borderRadius: '50%', 
+                        backgroundColor: getAvatarColor(c.name),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontWeight: 600,
+                        fontSize: 14
+                      }}>
+                        {getInitials(c.name)}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600 }}><Link to={`/candidates/${c.id}`}>{c.name}</Link></div>
+                        <div className="muted" style={{ fontSize: 12 }}>{c.email}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: 'wrap' }}>
+                      {getAvailableStages(stage).map(s => (
+                        <button 
+                          key={s} 
+                          onClick={() => move(c.id, s)}
+                          style={{
+                            ...getButtonStyle(s),
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            fontWeight: 500,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {s.charAt(0).toUpperCase() + s.slice(1)}
+                        </button>
                       ))}
                     </div>
                   </li>
