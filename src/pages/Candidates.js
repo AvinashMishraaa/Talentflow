@@ -9,7 +9,7 @@ function Candidates() {
   const [stage, setStage] = useState("");
   const [page, setPage] = useState(1);
   const containerRef = useRef(null);
-  // const navigate = useNavigate(); // Unused, commented out to fix lint error
+  const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
