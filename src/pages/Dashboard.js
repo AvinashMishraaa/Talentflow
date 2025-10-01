@@ -6,7 +6,7 @@ function Dashboard() {
     <div className="content dashboard">
       <section className="hero">
         <div className="hero-text">
-          <h1>Everything you need to hire great talent</h1>
+          <h1>Everything You Need To Hire Great Talent</h1>
           <p className="muted">Powerful features designed to make your hiring process efficient and effective.</p>
         </div>
       </section>
