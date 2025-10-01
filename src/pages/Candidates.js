@@ -22,7 +22,7 @@ function Candidates() {
     const params = new URLSearchParams(); 
   if (search) params.set("search", search);
   if (stage) params.set("stage", stage);
-  params.set("pageSize", "2000"); // Large enough to show all
+  params.set("pageSize", "2000"); 
     const res = await fetch(`/candidates?${params.toString()}`);
     const pageData = await res.json();
     setCandidates(pageData.data);

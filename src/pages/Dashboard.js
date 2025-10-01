@@ -45,16 +45,6 @@ function Dashboard() {
           <div className="feature-arrow">→</div>
         </Link>
       </section>
-      <section className="feature-grid">
-        <Link to="/audit-log" className="feature feature-link">
-          <div className="feature-icon" style={{background: 'linear-gradient(135deg, #fbbf24 20%, #f3f6ff 80%)', fontSize: 32}}>📜</div>
-          <div className="feature-body">
-            <h2>Audit Log</h2>
-            <p className="muted">View a history of all important actions for transparency and accountability.</p>
-          </div>
-          <div className="feature-arrow">→</div>
-        </Link>
-      </section>
 
       <section className="contact-banner">
         <div className="contact-col left"><strong>Contact Us</strong></div>
