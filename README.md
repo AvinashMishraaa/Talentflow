@@ -1,5 +1,4 @@
-=
-                    TALENTFLOW - MINI HIRING PLATFORM PROJECT REPORT
+TALENTFLOW - MINI HIRING PLATFORM PROJECT REPORT
 ===============================================================================
 
 WHAT I BUILT
