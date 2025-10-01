@@ -31,10 +31,6 @@ body {
   display: flex;
   flex-direction: column;
 }
-.sidebar.collapsed { width: 56px; padding: 12px 10px; }
-.sidebar.collapsed .brand-name,
-.sidebar.collapsed .user-meta,
-.sidebar.collapsed .nav-item { overflow: hidden; white-space: nowrap; text-align: center; padding: 8px 0; }
 .collapse-btn { margin-left: auto; border: 1px solid var(--border); background: var(--panel); border-radius: 8px; height: 28px; width: 28px; cursor: pointer; color: var(--text); }
 
 .brand {

@@ -52,9 +52,9 @@ const getButtonStyle = (stage) => {
 // Get available next stages based on current stage
 const getAvailableStages = (currentStage) => {
   const stageFlow = {
-    applied: ['screen', 'hired', 'rejected'],
-    screen: ['tech', 'hired', 'rejected'],
-    tech: ['offer', 'hired', 'rejected'],
+    applied: ['screen', 'rejected'],
+    screen: ['tech', 'rejected'],
+    tech: ['offer', 'rejected'],
     offer: ['hired', 'rejected'],
     hired: [], // No further actions
     rejected: [] // No further actions
@@ -327,22 +327,27 @@ export function CandidateProfile() {
   };
 
   const insertMention = (name) => {
-    const cursorPos = inputRef.current.selectionStart;
+    // Store current cursor position before any DOM changes
+    const cursorPos = inputRef.current?.selectionStart || text.length;
     const textBeforeCursor = text.slice(0, cursorPos);
     const textAfterCursor = text.slice(cursorPos);
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
     
     if (lastAtIndex !== -1) {
+      // Find the text after @ that we're replacing
+      const textAfterAt = textBeforeCursor.slice(lastAtIndex + 1);
       const newText = textBeforeCursor.slice(0, lastAtIndex) + `@${name} ` + textAfterCursor;
       setText(newText);
       setShowSuggestions(false);
       
-      // Focus back to input
+      // Focus back to input and set cursor position
       setTimeout(() => {
-        inputRef.current.focus();
-        const newCursorPos = lastAtIndex + name.length + 2; // +2 for @ and space
-        inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
-      }, 0);
+        if (inputRef.current) {
+          inputRef.current.focus();
+          const newCursorPos = lastAtIndex + name.length + 2; // +2 for @ and space
+          inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+        }
+      }, 10); // Slightly longer timeout to ensure DOM updates
     }
   };
 
@@ -436,6 +441,10 @@ export function CandidateProfile() {
               {filteredSuggestions.map((name, index) => (
                 <div
                   key={name}
+                  onMouseDown={(e) => {
+                    e.preventDefault(); // Prevent input from losing focus
+                    insertMention(name);
+                  }}
                   onClick={() => insertMention(name)}
                   style={{
                     padding: '8px 12px',
