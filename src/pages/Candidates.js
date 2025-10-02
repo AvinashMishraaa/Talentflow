@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 
 const STAGES = ["applied", "screen", "tech", "offer", "hired", "rejected"];
@@ -304,9 +304,9 @@ function Candidates() {
                         flexDirection: 'column', 
                         justifyContent: 'space-between', 
                         boxSizing: 'border-box',
-                        cursor: 'grab',
                         transition: 'all 0.2s ease',
-                        touchAction: 'manipulation'
+                        touchAction: 'manipulation',
+                        cursor: 'grab'
                       }} 
                       draggable 
                       onDragStart={(e) => handleDragStart(e, c)}
@@ -342,7 +342,7 @@ function Candidates() {
                               lineHeight: 1.3
                             }}
                           >
-                            <Link to={`/candidates/${c.id}`}>{c.name}</Link>
+                            <Link to={`/candidates/${c.id}`} onClick={(e) => e.stopPropagation()}>{c.name}</Link>
                           </div>
                           <div 
                             className="candidate-email muted" 
@@ -374,10 +374,10 @@ function Candidates() {
                           marginTop: 8 
                         }}
                       >
-                        {getAvailableStages(stage).map(s => (
+                        {getAvailableStages(c.stage).map(s => (
                           <button 
                             key={s} 
-                            onClick={() => move(c.id, s)}
+                            onClick={(e) => { e.stopPropagation(); move(c.id, s); }}
                             style={{
                               ...getButtonStyle(s),
                               padding: window.innerWidth <= 768 ? '4px 6px' : '4px 8px',
@@ -454,8 +454,8 @@ function Candidates() {
                         flexDirection: 'column', 
                         justifyContent: 'space-between', 
                         boxSizing: 'border-box',
-                        cursor: 'grab',
-                        transition: 'all 0.2s ease'
+                        transition: 'all 0.2s ease',
+                        cursor: 'grab'
                       }} 
                       draggable 
                       onDragStart={(e) => handleDragStart(e, c)}
@@ -480,7 +480,7 @@ function Candidates() {
                         {getInitials(c.name)}
                       </div>
                       <div>
-                        <div style={{ fontWeight: 600 }}><Link to={`/candidates/${c.id}`}>{c.name}</Link></div>
+                        <div style={{ fontWeight: 600 }}><Link to={`/candidates/${c.id}`} onClick={(e) => e.stopPropagation()}>{c.name}</Link></div>
                         <div className="muted" style={{ fontSize: 12 }}>{c.email}</div>
                         <div style={{ fontSize: 11, color: '#5b5bd6', fontWeight: 500, marginTop: 2 }}>
                           {c.jobTitle || c.appliedFor || 'No Job Assigned'}
@@ -488,10 +488,10 @@ function Candidates() {
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
-                      {getAvailableStages(stage).map(s => (
+                      {getAvailableStages(c.stage).map(s => (
                         <button 
                           key={s} 
-                          onClick={() => move(c.id, s)}
+                          onClick={(e) => { e.stopPropagation(); move(c.id, s); }}
                           style={{
                             ...getButtonStyle(s),
                             padding: '4px 8px',
@@ -743,33 +743,6 @@ export function CandidateProfile() {
   );
 }
 
-function VirtualizedCandidateList({ scrollParentRef, items, renderItem }) {
-  const ITEM_HEIGHT = 128;
-  const [viewport, setViewport] = useState({ top: 0, height: 600 });
-
-  useEffect(() => {
-    const el = scrollParentRef.current;
-    if (!el) return;
-    const onScroll = () => setViewport({ top: el.scrollTop, height: el.clientHeight });
-    onScroll();
-    el.addEventListener('scroll', onScroll);
-    return () => el.removeEventListener('scroll', onScroll);
-  }, [scrollParentRef]);
-
-  const startIndex = Math.max(0, Math.floor(viewport.top / ITEM_HEIGHT) - 5);
-  const visibleCount = Math.ceil(viewport.height / ITEM_HEIGHT) + 10;
-  const endIndex = Math.min(items.length, startIndex + visibleCount);
-  const topPad = startIndex * ITEM_HEIGHT;
-  const bottomPad = (items.length - endIndex) * ITEM_HEIGHT;
-
-  return (
-    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-      {topPad > 0 && <li style={{ height: topPad }} />}
-      {items.slice(startIndex, endIndex).map(item => renderItem(item))}
-      {bottomPad > 0 && <li style={{ height: bottomPad }} />}
-    </ul>
-  );
-}
 
 function Assignments({ candidateId }) {
   const [items, setItems] = useState([]);

@@ -180,19 +180,43 @@ function Jobs() {
         {loading ? (
           <div className="muted">Loading...</div>
         ) : (
-          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            {jobs.sort((a,b)=>a.order-b.order).map(job => {
+          <ul 
+            style={{ listStyle: "none", padding: 0, margin: 0 }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              // Find the job being dragged over
+              const rect = e.currentTarget.getBoundingClientRect();
+              const y = e.clientY - rect.top;
+              const jobElements = Array.from(e.currentTarget.children);
+              let targetJob = null;
+              
+              for (let i = 0; i < jobElements.length; i++) {
+                const jobRect = jobElements[i].getBoundingClientRect();
+                const jobY = jobRect.top - rect.top + jobRect.height / 2;
+                if (y < jobY) {
+                  const jobId = parseInt(jobElements[i].getAttribute('data-job-id'));
+                  targetJob = jobs.find(j => j.id === jobId);
+                  break;
+                }
+              }
+              
+              if (targetJob) {
+                setDragOverItem(targetJob.id);
+              }
+            }}
+            onDragLeave={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget)) {
+                setDragOverItem(null);
+              }
+            }}
+          >
+            {jobs.sort((a,b)=>a.order-b.order).map((job, index) => {
               const isDragging = draggedItem === job.id;
               const isDragOver = dragOverItem === job.id;
               return (
-              <li 
-                key={job.id} 
-                draggable 
-                onDragStart={beginDrag(job.order, job)} 
-                onDragOver={handleDragOver(job.order, job.id)}
-                onDragLeave={handleDragLeave}
-                onDrop={dropOn(job.order, job.id)}
-                onDragEnd={handleDragEnd}
+              <li
+                key={job.id}
+                data-job-id={job.id}
                 style={{ 
                   display: "flex", 
                   justifyContent: "space-between", 
@@ -201,20 +225,49 @@ function Jobs() {
                   opacity: isDragging ? 0.5 : 1,
                   backgroundColor: isDragOver ? '#f0f9ff' : 'transparent',
                   borderLeft: isDragOver ? '3px solid #3b82f6' : '3px solid transparent',
-                  transition: 'all 0.2s ease',
-                  cursor: 'move'
-                }}>
-                <div>
-                  <div style={{ fontWeight: 600 }}><Link to={`/jobs/${job.id}`}>{job.title}</Link></div>
-                  <div className="muted" style={{ fontSize: 12 }}>{job.tags?.join(", ")}</div>
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div 
+                    draggable 
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('text/plain', job.id.toString());
+                      beginDrag(job.order, job)(e);
+                    }} 
+                    onDragEnd={handleDragEnd}
+                    style={{ 
+                      cursor: 'move', 
+                      padding: '4px', 
+                      color: '#9ca3af',
+                      fontSize: '12px',
+                      userSelect: 'none'
+                    }}
+                    title="Drag to reorder"
+                  >
+                    ⋮⋮
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>
+                      <Link 
+                        to={`/jobs/${job.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ textDecoration: 'none', color: 'inherit' }}
+                      >
+                        {job.title}
+                      </Link>
+                    </div>
+                    <div className="muted" style={{ fontSize: 12 }}>{job.tags?.join(", ")}</div>
+                  </div>
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <span className="muted" style={{ textTransform: "capitalize" }}>{job.status}</span>
-                  <button onClick={() => openEdit(job)} className="icon-btn" style={{ width: "auto", padding: "0 10px" }}>Edit</button>
+                  <button onClick={(e) => { e.stopPropagation(); openEdit(job); }} className="icon-btn" style={{ width: "auto", padding: "0 10px" }}>Edit</button>
                   {job.status === "active" ? (
-                    <button onClick={() => archiveJob(job.id)} className="icon-btn" style={{ width: "auto", padding: "0 10px" }}>Archive</button>
+                    <button onClick={(e) => { e.stopPropagation(); archiveJob(job.id); }} className="icon-btn" style={{ width: "auto", padding: "0 10px" }}>Archive</button>
                   ) : (
-                    <button onClick={async () => {
+                    <button onClick={async (e) => {
+                      e.stopPropagation();
                       await fetch(`/jobs/${job.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status:'active' }) });
                       // Audit log entry for unarchive
                       try {
@@ -231,8 +284,7 @@ function Jobs() {
                   )}
                 </div>
               </li>
-            );
-            })}
+            )})}
           </ul>
         )}
       </div>

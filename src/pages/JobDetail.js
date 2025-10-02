@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 
 function JobDetail() {
   const { jobId } = useParams();
   const navigate = useNavigate();
   const [job, setJob] = useState(null);
   const [candidates, setCandidates] = useState([]);
+  const [assessments, setAssessments] = useState([]);
 
   useEffect(() => {
     fetch(`/jobs/${jobId}`)
@@ -16,6 +17,10 @@ function JobDetail() {
     fetch(`/candidates?jobId=${jobId}`)
       .then(r => r.json())
       .then(p => setCandidates(p.data || []));
+    
+    fetch(`/assessments?jobId=${jobId}`)
+      .then(r => r.json())
+      .then(setAssessments);
   }, [jobId, navigate]);
 
   if (!job) return <div className="content"><div className="muted">Loading...</div></div>;
@@ -83,7 +88,14 @@ function JobDetail() {
                 alignItems: 'center'
               }}>
                 <div>
-                  <div style={{ fontWeight: 600 }}>{candidate.name}</div>
+                  <div style={{ fontWeight: 600 }}>
+                    <Link 
+                      to={`/candidates/${candidate.id}`}
+                      style={{ textDecoration: 'none', color: 'inherit' }}
+                    >
+                      {candidate.name}
+                    </Link>
+                  </div>
                   <div className="muted" style={{ fontSize: 12 }}>{candidate.email}</div>
                 </div>
                 <div style={{ 
@@ -94,6 +106,64 @@ function JobDetail() {
                   fontSize: 12
                 }}>
                   {candidate.stage}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="card" style={{ marginTop: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h3 style={{ margin: 0 }}>Available Assessments ({assessments.length})</h3>
+          <Link 
+            to={`/assessments?jobId=${jobId}&builder=1`}
+            style={{ 
+              padding: '8px 16px',
+              background: '#3b82f6',
+              color: 'white',
+              textDecoration: 'none',
+              borderRadius: '6px',
+              fontSize: '14px'
+            }}
+          >
+            + Create Assessment
+          </Link>
+        </div>
+        {assessments.length === 0 ? (
+          <p className="muted">No assessments available for this position yet.</p>
+        ) : (
+          <div style={{ display: 'grid', gap: 12 }}>
+            {assessments.map(assessment => (
+              <div key={assessment.id} style={{ 
+                padding: 12, 
+                border: '1px solid var(--border)', 
+                borderRadius: 8,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>
+                    <Link 
+                      to={`/assessments?jobId=${jobId}&preview=${assessment.id}`}
+                      style={{ textDecoration: 'none', color: 'inherit' }}
+                    >
+                      {assessment.name}
+                    </Link>
+                  </div>
+                  <div className="muted" style={{ fontSize: 12 }}>
+                    {assessment.questions?.length || 0} questions
+                  </div>
+                </div>
+                <div style={{ 
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  background: '#e0f2fe',
+                  color: '#0284c7',
+                  fontSize: 12
+                }}>
+                  {assessment.level || 'General'}
                 </div>
               </div>
             ))}
