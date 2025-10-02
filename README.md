@@ -56,9 +56,13 @@ src/
 Key Features
 
 i   Responsive Design: Mobile-first approach with breakpoints at 768px and 480px
+
 ii  Dark/Light Theme: CSS custom properties with theme switching
+
 iii Drag & Drop: Native HTML5 drag and drop for job and candidate reordering
+
 iv  Real-time Search: Debounced search with URL parameter persistence
+
 v   Audit Logging: Local storage-based activity tracking
 
 🐛 Known Issues & Solutions
@@ -175,5 +179,6 @@ iii Branch previews for testing
 iv  Cost-effective for small projects
 
 ---
+
 
 
