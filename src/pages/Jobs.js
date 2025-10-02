@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { api } from "../utils/api";
 
 function Jobs() {
   const [jobs, setJobs] = useState([]);
@@ -9,21 +10,31 @@ function Jobs() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const dragFromOrder = useRef(null);
-  const [error] = useState("");
+  const [error, setError] = useState("");
+  const [saveLoading, setSaveLoading] = useState(false);
   const [draggedItem, setDraggedItem] = useState(null);
   const [dragOverItem, setDragOverItem] = useState(null);
 
-  const load = React.useCallback(() => {
+  const load = React.useCallback(async () => {
     setLoading(true);
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    if (status) params.set("status", status);
-    params.set("page", String(page));
-    params.set("pageSize", "10");
-    fetch(`/jobs?${params.toString()}`)
-      .then(res => res.json())
-      .then(data => { setJobs(data.data || []); setTotalPages(data.totalPages || 1); })
-      .finally(() => setLoading(false));
+    setError("");
+    try {
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+      if (status) params.set("status", status);
+      params.set("page", String(page));
+      params.set("pageSize", "10");
+      
+      const res = await api.get(`/jobs?${params.toString()}`);
+      const data = await res.json();
+      setJobs(data.data || []);
+      setTotalPages(data.totalPages || 1);
+    } catch (err) {
+      setError(err.message || "Failed to load jobs");
+      setJobs([]);
+    } finally {
+      setLoading(false);
+    }
   }, [search, status, page]);
 
   useEffect(() => {
@@ -47,43 +58,82 @@ function Jobs() {
   };
 
   const saveJob = async () => {
-    if (!form.title) { alert('Title required'); return; }
-    if (!validateUniqueSlug(form.title, editing?.id)) { alert('Title slug must be unique'); return; }
-    const payload = { title: form.title, status: form.status, tags: form.tags ? form.tags.split(',').map(t=>t.trim()).filter(Boolean) : [] };
-    // server-side slug validation
-    const slug = form.title.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
-    const check = await fetch(`/jobs/slug/${slug}?excludeId=${editing?.id||''}`);
-    const { exists } = await check.json();
-    if (exists) { alert('Title slug already exists'); return; }
-    const res = await fetch(editing ? `/jobs/${editing.id}` : "/jobs", { method: editing ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-    if (!res.ok) { alert('Server error, try again'); return; }
-    // Audit log entry
+    if (!form.title) { 
+      setError('Title is required'); 
+      return; 
+    }
+    if (!validateUniqueSlug(form.title, editing?.id)) { 
+      setError('Title slug must be unique'); 
+      return; 
+    }
+    
+    setSaveLoading(true);
+    setError("");
+    
     try {
-      const log = JSON.parse(localStorage.getItem("tf_audit_log") || "[]");
-      log.unshift({
-        action: editing ? "Job Edited" : "Job Created",
-        details: `Job '${form.title}' (${editing ? 'ID ' + editing.id : 'new'})`,
-        timestamp: Date.now()
-      });
-      localStorage.setItem("tf_audit_log", JSON.stringify(log.slice(0, 100)));
-    } catch {}
-    setShowModal(false);
-    load();
+      const payload = { 
+        title: form.title, 
+        status: form.status, 
+        tags: form.tags ? form.tags.split(',').map(t=>t.trim()).filter(Boolean) : [] 
+      };
+      
+      // Server-side slug validation
+      const slug = form.title.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+      const check = await api.get(`/jobs/slug/${slug}?excludeId=${editing?.id||''}`);
+      const { exists } = await check.json();
+      
+      if (exists) { 
+        setError('Title slug already exists'); 
+        return; 
+      }
+      
+      // Save job
+      if (editing) {
+        await api.patch(`/jobs/${editing.id}`, payload);
+      } else {
+        await api.post("/jobs", payload);
+      }
+      
+      // Audit log entry
+      try {
+        const log = JSON.parse(localStorage.getItem("tf_audit_log") || "[]");
+        log.unshift({
+          action: editing ? "Job Edited" : "Job Created",
+          details: `Job '${form.title}' (${editing ? 'ID ' + editing.id : 'new'})`,
+          timestamp: Date.now()
+        });
+        localStorage.setItem("tf_audit_log", JSON.stringify(log.slice(0, 100)));
+      } catch {}
+      
+      setShowModal(false);
+      load();
+    } catch (err) {
+      setError(err.message || "Failed to save job");
+    } finally {
+      setSaveLoading(false);
+    }
   };
 
   const archiveJob = async (id) => {
-    await fetch(`/jobs/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "archived" }) });
-    // Audit log entry
     try {
-      const log = JSON.parse(localStorage.getItem("tf_audit_log") || "[]");
-      log.unshift({
-        action: "Job Archived",
-        details: `Job ID ${id} archived`,
-        timestamp: Date.now()
-      });
-      localStorage.setItem("tf_audit_log", JSON.stringify(log.slice(0, 100)));
-    } catch {}
-    load();
+      await api.patch(`/jobs/${id}`, { status: "archived" });
+      
+      // Audit log entry
+      try {
+        const log = JSON.parse(localStorage.getItem("tf_audit_log") || "[]");
+        log.unshift({
+          action: "Job Archived",
+          details: `Job ID ${id} archived`,
+          timestamp: Date.now()
+        });
+        localStorage.setItem("tf_audit_log", JSON.stringify(log.slice(0, 100)));
+      } catch {}
+      
+      load();
+    } catch (err) {
+      setError(err.message || "Failed to archive job");
+      setTimeout(() => setError(""), 3000);
+    }
   };
 
   const beginDrag = (order, job) => (e) => { 
@@ -239,18 +289,25 @@ function Jobs() {
                   ) : (
                     <button onClick={async (e) => {
                       e.stopPropagation();
-                      await fetch(`/jobs/${job.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status:'active' }) });
-                      // Audit log entry for unarchive
                       try {
-                        const log = JSON.parse(localStorage.getItem("tf_audit_log") || "[]");
-                        log.unshift({
-                          action: "Job Unarchived",
-                          details: `Job '${job.title}' (ID ${job.id}) unarchived`,
-                          timestamp: Date.now()
-                        });
-                        localStorage.setItem("tf_audit_log", JSON.stringify(log.slice(0, 100)));
-                      } catch {}
-                      load();
+                        await api.patch(`/jobs/${job.id}`, { status: 'active' });
+                        
+                        // Audit log entry for unarchive
+                        try {
+                          const log = JSON.parse(localStorage.getItem("tf_audit_log") || "[]");
+                          log.unshift({
+                            action: "Job Unarchived",
+                            details: `Job '${job.title}' (ID ${job.id}) unarchived`,
+                            timestamp: Date.now()
+                          });
+                          localStorage.setItem("tf_audit_log", JSON.stringify(log.slice(0, 100)));
+                        } catch {}
+                        
+                        load();
+                      } catch (err) {
+                        setError(err.message || "Failed to unarchive job");
+                        setTimeout(() => setError(""), 3000);
+                      }
                     }} className="icon-btn" style={{ width: "auto", padding: "0 10px", minWidth: 80 }}>Unarchive</button>
                   )}
                 </div>
@@ -272,18 +329,70 @@ function Jobs() {
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.3)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:50 }} onClick={() => setShowModal(false)}>
           <div className="card" style={{ width: 420, background: 'var(--bg)' }} onClick={e=>e.stopPropagation()}>
             <h3 style={{ margin:'0 0 8px 0' }}>{editing ? 'Edit Job' : 'Create Job'}</h3>
+            
+            {error && (
+              <div style={{ 
+                padding: '8px 12px', 
+                background: '#fef2f2', 
+                border: '1px solid #fecaca', 
+                borderRadius: '6px', 
+                color: '#dc2626',
+                fontSize: '14px',
+                marginBottom: '12px'
+              }}>
+                {error}
+              </div>
+            )}
+            
             <div style={{ display:'grid', gap:8 }}>
-              <input className="search" placeholder="Title" value={form.title} onChange={e=>setForm({ ...form, title: e.target.value })} />
-              <select className="search" value={form.status} onChange={e=>setForm({ ...form, status: e.target.value })}>
+              <input 
+                className="search" 
+                placeholder="Title" 
+                value={form.title} 
+                onChange={e=>setForm({ ...form, title: e.target.value })}
+                disabled={saveLoading}
+              />
+              <select 
+                className="search" 
+                value={form.status} 
+                onChange={e=>setForm({ ...form, status: e.target.value })}
+                disabled={saveLoading}
+              >
                 <option value="active">Active</option>
                 <option value="archived">Archived</option>
               </select>
-              <input className="search" placeholder="Tags (comma separated)" value={form.tags} onChange={e=>setForm({ ...form, tags: e.target.value })} />
+              <input 
+                className="search" 
+                placeholder="Tags (comma separated)" 
+                value={form.tags} 
+                onChange={e=>setForm({ ...form, tags: e.target.value })}
+                disabled={saveLoading}
+              />
               <div className="muted">Slug: {form.title ? form.title.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') : '—'}</div>
             </div>
+            
             <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:12 }}>
-              <button className="icon-btn" style={{ width:'auto', padding:'0 10px' }} onClick={()=>setShowModal(false)}>Cancel</button>
-              <button className="icon-btn" style={{ width:'auto', padding:'0 10px' }} onClick={saveJob}>Save</button>
+              <button 
+                className="icon-btn" 
+                style={{ width:'auto', padding:'0 10px' }} 
+                onClick={()=>setShowModal(false)}
+                disabled={saveLoading}
+              >
+                Cancel
+              </button>
+              <button 
+                className="icon-btn" 
+                style={{ 
+                  width:'auto', 
+                  padding:'0 10px',
+                  opacity: saveLoading ? 0.6 : 1,
+                  cursor: saveLoading ? 'not-allowed' : 'pointer'
+                }} 
+                onClick={saveJob}
+                disabled={saveLoading}
+              >
+                {saveLoading ? 'Saving...' : 'Save'}
+              </button>
             </div>
           </div>
         </div>

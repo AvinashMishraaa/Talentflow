@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { api } from "../utils/api";
 
 function Assessments() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -13,8 +14,24 @@ function Assessments() {
   const [builder, setBuilder] = useState({ name: '', sections: [] });
 
   useEffect(() => {
-    fetch('/jobs?page=1&pageSize=100').then(r=>r.json()).then(p=> setJobs(p.data || []));
-    fetch('/assessments').then(r=>r.json()).then(setAssessments);
+    const loadData = async () => {
+      try {
+        const [jobsRes, assessmentsRes] = await Promise.all([
+          api.get('/jobs?page=1&pageSize=100'),
+          api.get('/assessments')
+        ]);
+        
+        const jobsData = await jobsRes.json();
+        const assessmentsData = await assessmentsRes.json();
+        
+        setJobs(jobsData.data || []);
+        setAssessments(assessmentsData);
+      } catch (err) {
+        console.error('Failed to load assessment data:', err);
+      }
+    };
+    
+    loadData();
   }, []);
 
   const selectJob = (jobId) => {

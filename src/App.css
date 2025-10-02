@@ -20,6 +20,8 @@ body {
   --border: #e2e8f0;
   --text: #1e293b;
   --muted: #64748b;
+  --primary: #3b82f6;
+  --hover: #f3f4f6;
 }
 
 :root[data-theme='dark'] {
@@ -29,6 +31,8 @@ body {
   --text: #eee6ff;
   --muted: #a0a0aa;
   --border: #2a2a3e;
+  --primary: #6366f1;
+  --hover: rgba(127, 127, 255, .2);
 }
 
 :root[data-theme='dark'] .feature:hover {

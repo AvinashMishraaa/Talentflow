@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
+import { api } from "../utils/api";
 
 const STAGES = ["applied", "screen", "tech", "offer", "hired", "rejected"];
 
@@ -76,18 +77,33 @@ function Candidates() {
   }, [location.search]);
 
   useEffect(() => {
-    fetch('/jobs?page=1&pageSize=100').then(r=>r.json()).then(p=> setJobs(p.data || []));
+    const loadJobs = async () => {
+      try {
+        const res = await api.get('/jobs?page=1&pageSize=100');
+        const data = await res.json();
+        setJobs(data.data || []);
+      } catch (err) {
+        console.error('Failed to load jobs:', err);
+      }
+    };
+    loadJobs();
   }, []);
 
   const load = React.useCallback(async () => {
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    if (stage) params.set("stage", stage);
-    if (jobFilter) params.set("jobId", jobFilter);
-    params.set("pageSize", "2000"); 
-    const res = await fetch(`/candidates?${params.toString()}`);
-    const pageData = await res.json();
-    setCandidates(pageData.data);
+    try {
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+      if (stage) params.set("stage", stage);
+      if (jobFilter) params.set("jobId", jobFilter);
+      params.set("pageSize", "2000"); 
+      
+      const res = await api.get(`/candidates?${params.toString()}`);
+      const pageData = await res.json();
+      setCandidates(pageData.data);
+    } catch (err) {
+      console.error('Failed to load candidates:', err);
+      setCandidates([]);
+    }
   }, [search, stage, jobFilter]);
 
   React.useEffect(() => { load(); }, [load]);
@@ -133,7 +149,7 @@ function Candidates() {
       });
     }
     
-    await fetch(`/candidates/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ stage }) });
+    await api.patch(`/candidates/${id}`, { stage });
     
     try {
       const log = JSON.parse(localStorage.getItem("tf_audit_log") || "[]");
@@ -545,23 +561,40 @@ export function CandidateProfile() {
   const inputRef = React.useRef(null);
   const mentionOptions = ["Alice", "Bob", "Carol", "David", "Eve", "Frank", "Grace", "Henry"];
   useEffect(() => {
-    fetch(`/candidates?search=&page=1&pageSize=1&id=${id}`);
-    fetch(`/candidates`).then(r => r.json()).then(p => {
-      const all = Array.isArray(p.data) ? p.data : p;
-      const found = all.find(c => String(c.id) === String(id));
-      setCandidate(found || null);
-    });
-    fetch(`/candidates/${id}/timeline`).then(r => r.json()).then(setTimeline);
-    fetch(`/candidates/${id}/notes`).then(r => r.json()).then(setNotes);
+    const loadCandidateData = async () => {
+      try {
+        // Load candidate details
+        const candidatesRes = await api.get('/candidates');
+        const candidatesData = await candidatesRes.json();
+        const all = Array.isArray(candidatesData.data) ? candidatesData.data : candidatesData;
+        const found = all.find(c => String(c.id) === String(id));
+        setCandidate(found || null);
+        
+        // Load timeline and notes
+        const timelineRes = await api.get(`/candidates/${id}/timeline`);
+        const timelineData = await timelineRes.json();
+        setTimeline(timelineData);
+        
+        const notesRes = await api.get(`/candidates/${id}/notes`);
+        const notesData = await notesRes.json();
+        setNotes(notesData);
+      } catch (err) {
+        console.error('Failed to load candidate data:', err);
+      }
+    };
+    
+    loadCandidateData();
   }, [id]);
   const addNote = async () => {
     if (!text.trim()) return;
-    const res = await fetch(`/candidates/${id}/notes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
-    if (res.ok) {
+    try {
+      const res = await api.post(`/candidates/${id}/notes`, { text });
       const note = await res.json();
       setNotes(n => [note, ...n]);
       setText("");
       setShowSuggestions(false);
+    } catch (err) {
+      console.error('Failed to add note:', err);
     }
   };
 
@@ -587,8 +620,18 @@ export function CandidateProfile() {
           
           const input = e.target;
           const rect = input.getBoundingClientRect();
+          const viewportHeight = window.innerHeight;
+          const suggestionsHeight = Math.min(200, filtered.length * 40); // Estimate dropdown height
+          
+          // Check if dropdown would go below viewport
+          let top = rect.bottom + window.scrollY + 4;
+          if (rect.bottom + suggestionsHeight > viewportHeight) {
+            // Position above input if not enough space below
+            top = rect.top + window.scrollY - suggestionsHeight - 4;
+          }
+          
           setSuggestionPosition({
-            top: rect.bottom + window.scrollY + 4,
+            top: Math.max(10, top), // Ensure minimum 10px from top
             left: rect.left + window.scrollX
           });
         } else {
@@ -698,8 +741,9 @@ export function CandidateProfile() {
                 position: 'fixed',
                 top: suggestionPosition.top,
                 left: suggestionPosition.left,
-                background: 'white',
-                border: '1px solid #e5e7eb',
+                background: 'var(--panel, white)',
+                color: 'var(--text, black)',
+                border: '1px solid var(--border, #e5e7eb)',
                 borderRadius: '8px',
                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                 zIndex: 1000,
@@ -719,8 +763,9 @@ export function CandidateProfile() {
                   style={{
                     padding: '8px 12px',
                     cursor: 'pointer',
-                    backgroundColor: index === activeSuggestion ? '#f3f4f6' : 'transparent',
-                    borderBottom: index < filteredSuggestions.length - 1 ? '1px solid #f1f5f9' : 'none'
+                    backgroundColor: index === activeSuggestion ? 'var(--hover, #f3f4f6)' : 'transparent',
+                    borderBottom: index < filteredSuggestions.length - 1 ? '1px solid var(--border, #f1f5f9)' : 'none',
+                    color: 'var(--text, black)'
                   }}
                   onMouseEnter={() => setActiveSuggestion(index)}
                 >
@@ -734,7 +779,7 @@ export function CandidateProfile() {
           {notes.map(n => (
             <li key={n.id} style={{ padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
               <div className="muted" style={{ fontSize: 12 }}>{new Date(n.at).toLocaleString()}</div>
-              <div dangerouslySetInnerHTML={{ __html: n.text.replace(/@([A-Za-z]+)/g, '<strong>@$1</strong>') }} />
+              <div dangerouslySetInnerHTML={{ __html: n.text.replace(/@([A-Za-z]+)/g, '<strong style="color: var(--primary, #3b82f6); font-weight: 600;">@$1</strong>') }} />
             </li>
           ))}
         </ul>
@@ -747,7 +792,17 @@ export function CandidateProfile() {
 function Assignments({ candidateId }) {
   const [items, setItems] = useState([]);
   useEffect(() => {
-    fetch(`/candidates/${candidateId}/assignments`).then(r=>r.json()).then(setItems);
+    const loadAssignments = async () => {
+      try {
+        const res = await api.get(`/candidates/${candidateId}/assignments`);
+        const data = await res.json();
+        setItems(data);
+      } catch (err) {
+        console.error('Failed to load assignments:', err);
+        setItems([]);
+      }
+    };
+    loadAssignments();
   }, [candidateId]);
   return (
     <div style={{ marginTop: 12 }}>
