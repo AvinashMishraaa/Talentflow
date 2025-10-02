@@ -91,65 +91,6 @@ function Jobs() {
     setDraggedItem(job.id);
     e.dataTransfer.effectAllowed = 'move';
   };
-  const handleDragOver = (order, id) => (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    setDragOverItem(id);
-  };
-
-  const handleDragLeave = (e) => {
-    // Only clear if we're leaving the entire item, not just a child element
-    if (!e.currentTarget.contains(e.relatedTarget)) {
-      setDragOverItem(null);
-    }
-  };
-
-  const dropOn = (order, id) => async (e) => {
-    e.preventDefault();
-    setDraggedItem(null);
-    setDragOverItem(null);
-    const fromOrder = dragFromOrder.current;
-    const toOrder = order;
-    if (fromOrder == null || fromOrder === toOrder) return;
-    
-    // optimistic reorder locally
-    const previous = [...jobs];
-    const list = [...jobs].sort((a,b)=>a.order-b.order);
-    const fromIdx = list.findIndex(j=>j.order===fromOrder);
-    const [moved] = list.splice(fromIdx,1);
-    
-    // Calculate correct insertion index
-    let toIdx = list.findIndex(j=>j.order===toOrder);
-    
-    // If dragging down (fromOrder < toOrder), insert after the target
-    if (fromOrder < toOrder) {
-      toIdx = toIdx + 1;
-    }
-    
-    list.splice(toIdx, 0, moved);
-    list.forEach((j,i)=>j.order=i+1);
-    setJobs(list);
-    
-    try {
-      const res = await fetch(`/jobs/${id}/reorder`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fromOrder, toOrder }) });
-      if (!res.ok) throw new Error('Server error');
-      
-      // Audit log for successful reorder
-      const log = JSON.parse(localStorage.getItem("tf_audit_log") || "[]");
-      log.unshift({
-        action: "Job Reordered",
-        details: `Job moved from position ${fromOrder} to ${toOrder}`,
-        timestamp: Date.now()
-      });
-      localStorage.setItem("tf_audit_log", JSON.stringify(log.slice(0, 100)));
-    } catch (err) {
-      setJobs(previous); 
-      setError('Reorder failed (rolled back)'); 
-      setTimeout(()=>setError(''),3000);
-    }
-    
-    dragFromOrder.current = null;
-  };
 
   const handleDragEnd = () => {
     setDraggedItem(null);
