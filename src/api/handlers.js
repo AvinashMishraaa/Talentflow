@@ -501,9 +501,25 @@ export const handlers = [
     return HttpResponse.json({ exists });
   }),
   http.get("/notifications", async () => {
-    await delay(200);
-    const items = candidatesData.slice(0, 5).map(c => ({ id: `n-${c.id}`, text: `${c.name} applied to Job #${c.jobId}` }));
-    return HttpResponse.json(items);
+    try {
+      await ensureDataInitialized();
+      await delay(200);
+      
+      // Ensure candidatesData exists and is an array
+      if (!candidatesData || !Array.isArray(candidatesData)) {
+        console.warn('Candidates data not available for notifications');
+        return HttpResponse.json([]);
+      }
+      
+      const items = candidatesData.slice(0, 5).map(c => ({ 
+        id: `n-${c.id}`, 
+        text: `${c.name} applied to Job #${c.jobId}` 
+      }));
+      return HttpResponse.json(items);
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+      return HttpResponse.json([], { status: 200 }); // Return empty array instead of error
+    }
   }),
   http.get("/jobs", async ({ request }) => {
     await ensureDataInitialized();
