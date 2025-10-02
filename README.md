@@ -14,7 +14,7 @@ Installation Steps
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/AvinashMishraaa/talentflow
 cd talentflow
 
 # Install dependencies
@@ -25,13 +25,6 @@ npm start
 
 # Build for production
 npm run build
-```
-
-Environment Configuration
-Create a `.env` file in the root directory:
-
-```
-REACT_APP_API_URL=your-api-endpoint
 ```
 
 🏗️ Architecture
@@ -182,4 +175,5 @@ iii Branch previews for testing
 iv  Cost-effective for small projects
 
 ---
+
 
