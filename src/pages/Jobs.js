@@ -9,7 +9,7 @@ function Jobs() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const dragFromOrder = useRef(null);
-  const [error, setError] = useState("");
+  const [error] = useState("");
   const [draggedItem, setDraggedItem] = useState(null);
   const [dragOverItem, setDragOverItem] = useState(null);
 
@@ -158,6 +158,53 @@ function Jobs() {
               <li
                 key={job.id}
                 data-job-id={job.id}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('text/plain', job.id.toString());
+                  beginDrag(job.order, job)(e);
+                }} 
+                onDragEnd={handleDragEnd}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOverItem(job.id);
+                }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget)) {
+                    setDragOverItem(null);
+                  }
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const draggedJobId = parseInt(e.dataTransfer.getData('text/plain'));
+                  if (draggedJobId && draggedJobId !== job.id) {
+                    // Handle reordering logic here
+                    const draggedJob = jobs.find(j => j.id === draggedJobId);
+                    const targetJob = job;
+                    if (draggedJob && targetJob) {
+                      const newJobs = [...jobs];
+                      const draggedIndex = newJobs.findIndex(j => j.id === draggedJob.id);
+                      const targetIndex = newJobs.findIndex(j => j.id === targetJob.id);
+                      
+                      // Remove dragged job and insert at target position
+                      newJobs.splice(draggedIndex, 1);
+                      newJobs.splice(targetIndex, 0, draggedJob);
+                      
+                      // Update order values
+                      newJobs.forEach((j, idx) => j.order = idx + 1);
+                      setJobs(newJobs);
+                      
+                      // Update server
+                      Promise.all(newJobs.map(j => 
+                        fetch(`/jobs/${j.id}`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ order: j.order })
+                        })
+                      ));
+                    }
+                  }
+                  setDragOverItem(null);
+                }}
                 style={{ 
                   display: "flex", 
                   justifyContent: "space-between", 
@@ -166,28 +213,11 @@ function Jobs() {
                   opacity: isDragging ? 0.5 : 1,
                   backgroundColor: isDragOver ? '#f0f9ff' : 'transparent',
                   borderLeft: isDragOver ? '3px solid #3b82f6' : '3px solid transparent',
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.2s ease',
+                  cursor: 'grab'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div 
-                    draggable 
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData('text/plain', job.id.toString());
-                      beginDrag(job.order, job)(e);
-                    }} 
-                    onDragEnd={handleDragEnd}
-                    style={{ 
-                      cursor: 'move', 
-                      padding: '4px', 
-                      color: '#9ca3af',
-                      fontSize: '12px',
-                      userSelect: 'none'
-                    }}
-                    title="Drag to reorder"
-                  >
-                    ⋮⋮
-                  </div>
                   <div>
                     <div style={{ fontWeight: 600 }}>
                       <Link 
