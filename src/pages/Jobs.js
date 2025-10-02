@@ -231,11 +231,11 @@ function Jobs() {
                     <div className="muted" style={{ fontSize: 12 }}>{job.tags?.join(", ")}</div>
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <span className="muted" style={{ textTransform: "capitalize" }}>{job.status}</span>
-                  <button onClick={(e) => { e.stopPropagation(); openEdit(job); }} className="icon-btn" style={{ width: "auto", padding: "0 10px" }}>Edit</button>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", minWidth: 200, justifyContent: "flex-end" }}>
+                  <span className="muted" style={{ textTransform: "capitalize", minWidth: 60 }}>{job.status}</span>
+                  <button onClick={(e) => { e.stopPropagation(); openEdit(job); }} className="icon-btn" style={{ width: "auto", padding: "0 10px", minWidth: 50 }}>Edit</button>
                   {job.status === "active" ? (
-                    <button onClick={(e) => { e.stopPropagation(); archiveJob(job.id); }} className="icon-btn" style={{ width: "auto", padding: "0 10px" }}>Archive</button>
+                    <button onClick={(e) => { e.stopPropagation(); archiveJob(job.id); }} className="icon-btn" style={{ width: "auto", padding: "0 10px", minWidth: 80 }}>Archive</button>
                   ) : (
                     <button onClick={async (e) => {
                       e.stopPropagation();
@@ -251,7 +251,7 @@ function Jobs() {
                         localStorage.setItem("tf_audit_log", JSON.stringify(log.slice(0, 100)));
                       } catch {}
                       load();
-                    }} className="icon-btn" style={{ width: "auto", padding: "0 10px" }}>Unarchive</button>
+                    }} className="icon-btn" style={{ width: "auto", padding: "0 10px", minWidth: 80 }}>Unarchive</button>
                   )}
                 </div>
               </li>
