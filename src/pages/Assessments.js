@@ -3,8 +3,7 @@ import { useSearchParams } from "react-router-dom";
 
 function Assessments() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const selectedJobId = searchParams.get('jobId');
-  const builderMode = searchParams.get('builder') === '1';
+  const selectedJobId = Number(searchParams.get('jobId'));  const builderMode = searchParams.get('builder') === '1';
   const previewMode = searchParams.get('preview');
   const editMode = searchParams.get('edit');
 
@@ -41,15 +40,15 @@ function Assessments() {
     setSearchParams({ jobId: selectedJobId, builder: '1', edit: assessmentId });
   };
 
-  const selectedJob = jobs.find(j => j.id == selectedJobId);
-  const jobAssessments = assessments.filter(a => a.jobId == selectedJobId);
+  const selectedJob = jobs.find(j => j.id === selectedJobId);
+  const jobAssessments = assessments.filter(a => a.jobId === selectedJobId);
 
   useEffect(() => {
     if (selectedJobId && builderMode) {
-      const job = jobs.find(j => j.id == selectedJobId);
+      const job = jobs.find(j => j.id === selectedJobId);
       if (job) {
         if (editMode) {
-          const assessment = assessments.find(a => a.id == editMode);
+          const assessment = assessments.find(a => a.id === editMode);
           if (assessment) {
             setBuilder({
               name: assessment.name,
@@ -129,7 +128,7 @@ function Assessments() {
           }}
         >
           {jobs.map(job => {
-            const jobAssessmentCount = assessments.filter(a => a.jobId == job.id).length;
+            const jobAssessmentCount = assessments.filter(a => a.jobId === job.id).length;
             return (
               <div 
                 key={job.id} 
@@ -164,7 +163,7 @@ function Assessments() {
   }
 
   if (previewMode) {
-    const assessment = assessments.find(a => a.id == previewMode);
+    const assessment = assessments.find(a => a.id === previewMode);
     if (!assessment) {
       return (
         <div className="content">
@@ -848,7 +847,7 @@ function AssignModal({ jobId }) {
     fetch(`/candidates?jobId=${selectedJob}&page=1&pageSize=500`).then(r=>r.json()).then(p=> setCandidates(p.data || []));
   }, [selectedJob]);
   
-  const filteredAssessments = selectedJob ? assessments.filter(a => a.jobId == selectedJob) : [];
+  const filteredAssessments = selectedJob ? assessments.filter(a => a.jobId === selectedJob) : [];
   
   const assign = async () => {
     if (!selectedAssessment || !selectedCandidate) return;
@@ -856,8 +855,8 @@ function AssignModal({ jobId }) {
     // Audit log entry
     try {
       const log = JSON.parse(localStorage.getItem("tf_audit_log") || "[]");
-      const assessment = assessments.find(a => a.id == selectedAssessment);
-      const candidate = candidates.find(c => c.id == selectedCandidate);
+      const assessment = assessments.find(a => a.id === selectedAssessment);
+      const candidate = candidates.find(c => c.id === selectedCandidate);
       log.unshift({
         action: "Assessment Assigned",
         details: `${assessment?.name} assigned to ${candidate?.name} for ${candidate?.jobTitle}`,
@@ -893,7 +892,7 @@ function AssignModal({ jobId }) {
                 <div>
                   <label style={{ display:'block', marginBottom:4, fontWeight:600 }}>Job Position</label>
                   <div style={{ padding: 8, background: 'var(--panel)', borderRadius: 4, border: '1px solid var(--border)' }}>
-                    {jobs.find(j => j.id == jobId)?.title || 'Loading...'}
+                    {jobs.find(j => j.id === jobId)?.title || 'Loading...'}
                   </div>
                 </div>
               )}
