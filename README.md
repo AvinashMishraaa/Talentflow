@@ -32,9 +32,13 @@ npm run build
 Frontend Architecture
 
 1 Framework: React 18 with functional components and hooks
+
 2 Routing: React Router v6 for client-side navigation
+
 3 State Management: React useState and useEffect hooks
+
 4 Styling: CSS-in-JS with CSS custom properties for theming
+
 5 Build Tool: Create React App with Webpack
 
 Component Structure
@@ -181,3 +185,4 @@ ii  Easier imports and maintenance
 iii Better code organization
 
 iv  Shared state between related components
+
