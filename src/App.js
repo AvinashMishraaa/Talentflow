@@ -7,6 +7,7 @@ import Candidates, { CandidateProfile } from './pages/Candidates';
 import Assessments from './pages/Assessments';
 import AuditLog from './pages/AuditLog';
 import Landing from "./pages/Landing";
+import { api } from './utils/api';
 
 function App() {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -155,6 +156,8 @@ function Topbar({ isMobile }) {
   const [showNotif, setShowNotif] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const [notificationsError, setNotificationsError] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
   const notifRef = React.useRef(null);
@@ -166,7 +169,27 @@ function Topbar({ isMobile }) {
   }, [theme]);
 
   useEffect(() => {
-    fetch("/notifications").then(r => r.json()).then(setNotifications);
+    const loadNotifications = async () => {
+      try {
+        setNotificationsLoading(true);
+        setNotificationsError(null);
+        const res = await api.get("/notifications");
+        const data = await res.json();
+        setNotifications(data);
+        console.log('✅ Notifications loaded successfully:', data);
+      } catch (err) {
+        console.error('❌ Failed to load notifications:', err);
+        setNotificationsError(err.message);
+        // Fallback to empty notifications instead of crashing
+        setNotifications([]);
+      } finally {
+        setNotificationsLoading(false);
+      }
+    };
+    
+    // Add a small delay to ensure MSW is ready
+    const timer = setTimeout(loadNotifications, 500);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -188,18 +211,26 @@ function Topbar({ isMobile }) {
     }
     let active = true;
     (async () => {
-      const [jobsRes, candidatesRes] = await Promise.all([
-        fetch(`/jobs?search=${encodeURIComponent(term)}&page=1&pageSize=5`),
-        fetch(`/candidates?search=${encodeURIComponent(term)}&page=1&pageSize=5`)
-      ]);
-      const jobs = (await jobsRes.json()).data || [];
-      const candidates = (await candidatesRes.json()).data || [];
-      if (active) {
-        setResults([
-          ...jobs.map(j => ({ type: "job", id: j.id, title: j.title })),
-          ...candidates.map(c => ({ type: "candidate", id: c.id, name: c.name }))
+      try {
+        const [jobsRes, candidatesRes] = await Promise.all([
+          api.get(`/jobs?search=${encodeURIComponent(term)}&page=1&pageSize=5`),
+          api.get(`/candidates?search=${encodeURIComponent(term)}&page=1&pageSize=5`)
         ]);
-        setShowResults(true);
+        const jobs = (await jobsRes.json()).data || [];
+        const candidates = (await candidatesRes.json()).data || [];
+        if (active) {
+          setResults([
+            ...jobs.map(j => ({ type: "job", id: j.id, title: j.title })),
+            ...candidates.map(c => ({ type: "candidate", id: c.id, name: c.name }))
+          ]);
+          setShowResults(true);
+        }
+      } catch (err) {
+        console.error('Search failed:', err);
+        if (active) {
+          setResults([]);
+          setShowResults(false);
+        }
       }
     })();
     return () => { active = false; };
@@ -268,8 +299,10 @@ function Topbar({ isMobile }) {
           {showNotif && (
             <div className="menu">
               <div className="menu-header">Recent activity</div>
-              {notifications.length === 0 && <div className="menu-item muted">No notifications</div>}
-              {notifications.map(n => (
+              {notificationsLoading && <div className="menu-item muted">Loading...</div>}
+              {notificationsError && <div className="menu-item muted">Error: {notificationsError}</div>}
+              {!notificationsLoading && !notificationsError && notifications.length === 0 && <div className="menu-item muted">No notifications</div>}
+              {!notificationsLoading && !notificationsError && notifications.map(n => (
                 <div key={n.id} className="menu-item">{n.text}</div>
               ))}
             </div>
