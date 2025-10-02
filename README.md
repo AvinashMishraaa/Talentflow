@@ -73,7 +73,9 @@ v   Audit Logging: Local storage-based activity tracking
    Solution:
 
 i   Added stopPropagation() to all Link components
+
 ii  Separated drag handles from clickable content
+
 iii Fixed component imports in App.js to use correct exports
 
 2. Component Import Mismatch
@@ -101,8 +103,11 @@ import Jobs, { JobDetail } from './pages/Jobs';
    Solution:
 
 i   Implemented collapsible sidebar with hamburger menu
+
 ii  Added mobile-specific CSS media queries
+
 iii Touch-friendly button sizes and spacing
+
 iv  Single-column layouts on mobile devices
 
 🔧 Technical Decisions
@@ -112,7 +117,9 @@ iv  Single-column layouts on mobile devices
    Rationale:
 
 i   Application complexity doesn't justify Redux overhead
+
 ii  Local state management sufficient for current scope
+
 iii Easier to understand and maintain for team
 
 2. Drag & Drop Implementation
@@ -120,8 +127,11 @@ iii Easier to understand and maintain for team
    Rationale:
 
 i   No additional dependencies
+
 ii  Better performance
+
 iii Full control over drag behavior
+
 iv  Consistent with web standards
 
 3. Styling Approach
@@ -129,8 +139,11 @@ iv  Consistent with web standards
    Rationale:
 
 i   Component-scoped styling
+
 ii  Dynamic theming support
+
 iii No CSS naming conflicts
+
 iv  Easy to maintain and modify
 
 4. Data Persistence
@@ -138,8 +151,11 @@ iv  Easy to maintain and modify
    Rationale:
 
 i   No backend database required for demo
+
 ii  Persistent across browser sessions
+
 iii Simple implementation
+
 iv  Easy to migrate to real database later
 
 5. Routing Strategy
@@ -147,8 +163,11 @@ iv  Easy to migrate to real database later
    Rationale:
 
 i   Single Page Application (SPA) experience
+
 ii  Fast navigation between pages
+
 iii URL-based state management
+
 iv  SEO-friendly with proper meta tags
 
 6. Component Architecture
@@ -156,8 +175,11 @@ iv  SEO-friendly with proper meta tags
    Rationale:
 
 i   Related components stay together
+
 ii  Easier imports and maintenance
+
 iii Better code organization
+
 iv  Shared state between related components
 
 7. Mobile-First Design
@@ -165,8 +187,11 @@ iv  Shared state between related components
    Rationale:
 
 i   Better mobile user experience
+
 ii  Progressive enhancement approach
+
 iii Covers majority of users
+
 iv  Easier to scale up than down
 
 8. Build and Deployment
@@ -174,11 +199,15 @@ iv  Easier to scale up than down
    Rationale:
 
 i   Easy CI/CD integration with Git
+
 ii  Automatic HTTPS and CDN
+
 iii Branch previews for testing
+
 iv  Cost-effective for small projects
 
 ---
+
 
 
 
