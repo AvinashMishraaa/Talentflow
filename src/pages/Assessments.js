@@ -87,9 +87,9 @@ function Assessments() {
   if (!builderMode) {
     return (
       <div className="content">
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 12 }}>
+        <div className="assessment-builder-header" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 12 }}>
           <h2 style={{ margin:0 }}>Assessments</h2>
-          <div style={{ display:'flex', gap:8 }}>
+          <div className="assessment-builder-actions" style={{ display:'flex', gap:8 }}>
             <AssignModal />
             <button className="icon-btn" style={{ width:'auto', padding:'0 10px' }} onClick={openBuilder}>Open Builder</button>
           </div>
@@ -115,9 +115,9 @@ function Assessments() {
 
   return (
     <div className="content" key={previewKey}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+      <div className="assessment-builder-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <h2 style={{ margin: 0 }}>Assessment Builder</h2>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="assessment-builder-actions" style={{ display: 'flex', gap: 8 }}>
           <input className="search" style={{ width: 280 }} value={builder.name} onChange={e => setBuilder(b => ({ ...b, name: e.target.value }))} />
           <button className="icon-btn" style={{ width:'auto', padding:'0 10px' }} onClick={addSection}>+ Section</button>
           <button className="icon-btn" style={{ width:'auto', padding:'0 10px' }} onClick={save}>Save</button>
@@ -126,13 +126,13 @@ function Assessments() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div className="assessment-builder-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div className="card">
           {builder.sections.map(section => (
             <div key={section.id} style={{ marginBottom: 16 }}>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                <input className="search" style={{ width: '60%' }} value={section.title} onChange={e => setBuilder(b => ({ ...b, sections: b.sections.map(s => s.id === section.id ? { ...s, title: e.target.value } : s) }))} />
-                <div style={{ display:'flex', gap: 6 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap: 'wrap', gap: 8 }}>
+                <input className="search" style={{ width: '60%', minWidth: '200px' }} value={section.title} onChange={e => setBuilder(b => ({ ...b, sections: b.sections.map(s => s.id === section.id ? { ...s, title: e.target.value } : s) }))} />
+                <div className="question-type-buttons" style={{ display:'flex', gap: 6, flexWrap: 'wrap' }}>
                   {['single','multi','short','long','number','file'].map(t => (
                     <button key={t} className="icon-btn" style={{ width:'auto', padding:'0 8px' }} onClick={() => addQuestion(section.id, t)}>{t}</button>
                   ))}
@@ -240,18 +240,18 @@ function AssessmentPreview({ builder, jobId, submitting, setSubmitting, showScor
           {q.type === 'number' && <input className="search" type="number" value={values[q.id] || ''} onChange={e => set(q.id, e.target.value)} />}
           {q.type === 'file' && <input className="search" type="file" onChange={e => set(q.id, e.target.files?.[0]?.name || '')} />}
           {q.type === 'single' && (
-            <div style={{ display:'flex', gap:8, marginTop:6 }}>
+            <div style={{ display:'flex', gap:8, marginTop:6, flexWrap: 'wrap' }}>
               {q.options.map(o => (
-                <label key={o}><input type="radio" name={q.id} checked={values[q.id]===o} onChange={()=>set(q.id,o)} /> {o}</label>
+                <label key={o} style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 'fit-content' }}><input type="radio" name={q.id} checked={values[q.id]===o} onChange={()=>set(q.id,o)} /> {o}</label>
               ))}
             </div>
           )}
           {q.type === 'multi' && (
-            <div style={{ display:'flex', gap:8, marginTop:6 }}>
+            <div style={{ display:'flex', gap:8, marginTop:6, flexWrap: 'wrap' }}>
               {q.options.map(o => {
                 const arr = Array.isArray(values[q.id]) ? values[q.id] : [];
                 const checked = arr.includes(o);
-                return <label key={o}><input type="checkbox" checked={checked} onChange={(e)=>{
+                return <label key={o} style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 'fit-content' }}><input type="checkbox" checked={checked} onChange={(e)=>{
                   const next = e.target.checked ? [...arr, o] : arr.filter(x=>x!==o);
                   set(q.id, next);
                 }} /> {o}</label>
@@ -309,7 +309,7 @@ function AssignModal() {
       <button className="icon-btn" style={{ width:'auto', padding:'0 10px' }} onClick={() => setOpen(true)}>Assign Assessment</button>
       {open && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.3)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:50 }} onClick={() => setOpen(false)}>
-          <div className="card" style={{ width: 520, background: 'var(--bg)' }} onClick={e=>e.stopPropagation()}>
+          <div className="card modal-card" style={{ width: 520, background: 'var(--bg)' }} onClick={e=>e.stopPropagation()}>
             <h3 style={{ marginTop:0 }}>Assign to Candidate</h3>
             <div style={{ display:'grid', gap:8 }}>
               <select className="search" value={selectedAssessment} onChange={e=>setSelectedAssessment(e.target.value)}>

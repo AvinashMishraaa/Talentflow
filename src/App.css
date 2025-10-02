@@ -30,6 +30,7 @@ body {
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
+  transition: transform 0.3s ease, width 0.3s ease;
 }
 .collapse-btn { margin-left: auto; border: 1px solid var(--border); background: var(--panel); border-radius: 8px; height: 28px; width: 28px; cursor: pointer; color: var(--text); }
 
@@ -61,12 +62,24 @@ body {
 .nav { margin-top: 8px; }
 
 .nav-item {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 10px 12px;
   margin: 6px 0;
   border-radius: 8px;
   text-decoration: none;
   color: var(--text);
+}
+
+.nav-icon {
+  font-size: 18px;
+  width: 20px;
+  text-align: center;
+}
+
+.nav-label {
+  flex: 1;
 }
 
 .nav-item:hover { background: rgba(127, 127, 255, .12); color: #5b5bd6; }
@@ -150,6 +163,8 @@ body {
 
 .app { overflow: hidden; }
 .sidebar { flex: 0 0 260px; }
+.sidebar.collapsed { width: 70px; }
+.sidebar.mobile-hidden { transform: translateX(-100%); }
 
 a { color: var(--text); text-decoration: none; }
 a:hover { text-decoration: none; }
@@ -173,3 +188,187 @@ a:hover { text-decoration: none; }
 .contact-col { text-align: center; }
 .contact-col.left { text-align: left; }
 .contact-col.right { text-align: right; }
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .app {
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 1000;
+    width: 280px;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+  
+  .main {
+    width: 100%;
+    margin-left: 0;
+  }
+  
+  .topbar {
+    padding: 0 16px;
+    height: 56px;
+  }
+  
+  .mobile-menu-btn {
+    display: block;
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--text);
+    margin-right: 12px;
+  }
+  
+  .content {
+    padding: 16px;
+    height: calc(100vh - 56px);
+  }
+  
+  .cards {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .feature-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin: 20px auto;
+  }
+  
+  .hero-text h1 {
+    font-size: 28px;
+  }
+  
+  .contact-banner {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    text-align: center;
+  }
+  
+  .contact-col.left,
+  .contact-col.right {
+    text-align: center;
+  }
+  
+  /* Assessment Builder Mobile Layout */
+  .assessment-builder-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px;
+  }
+  
+  .assessment-builder-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  
+  .assessment-builder-header .search {
+    width: 100% !important;
+  }
+  
+  .assessment-builder-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .assessment-builder-actions button {
+    flex: 1;
+    min-width: 80px;
+  }
+  
+  /* Question type buttons */
+  .question-type-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  
+  .question-type-buttons button {
+    flex: 1;
+    min-width: 60px;
+    font-size: 12px;
+    padding: 4px 6px;
+  }
+  
+  /* Modal adjustments */
+  .modal-card {
+    width: calc(100vw - 32px) !important;
+    max-width: 400px;
+    margin: 16px;
+  }
+  
+  /* Search results */
+  .search-results {
+    left: 16px !important;
+    right: 16px !important;
+    top: 56px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar {
+    padding: 0 12px;
+  }
+  
+  .content {
+    padding: 12px;
+  }
+  
+  .icon-btn {
+    height: 32px;
+    width: 32px;
+  }
+  
+  .search {
+    height: 36px;
+    font-size: 14px;
+  }
+  
+  .hero-text h1 {
+    font-size: 24px;
+  }
+  
+  .brand-name {
+    font-size: 16px;
+  }
+  
+  .assessment-builder-actions button {
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+}
+
+/* Hide mobile menu button on desktop */
+.mobile-menu-btn {
+  display: none;
+}
+
+/* Mobile overlay */
+.mobile-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+}
+
+@media (max-width: 768px) {
+  .mobile-overlay.active {
+    display: block;
+  }
+}

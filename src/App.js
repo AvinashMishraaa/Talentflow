@@ -8,21 +8,45 @@ import AuditLog from "./pages/AuditLog";
 import "./App.css";
 
 function App() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (!mobile) {
+        setSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+  const closeSidebar = () => setSidebarOpen(false);
+
   return (
     <Router>
       <div className="app">
-        <aside className="sidebar">
+        {/* Mobile overlay */}
+        {isMobile && sidebarOpen && (
+          <div className="mobile-overlay active" onClick={closeSidebar} />
+        )}
+        
+        <aside className={`sidebar ${isMobile && sidebarOpen ? 'mobile-open' : ''}`}>
           <div className="brand">
-            <Link to="/" className="brand-link">
+            <Link to="/" className="brand-link" onClick={isMobile ? closeSidebar : undefined}>
               <div className="brand-logo">TF</div>
               <div className="brand-name">TalentFlow</div>
             </Link>
           </div>
           <nav className="nav">
-            <NavItem to="/" label="Dashboard" icon="🏠" />
-            <NavItem to="/jobs" label="Jobs" icon="💼" />
-            <NavItem to="/candidates" label="Candidates" icon="👥" />
-            <NavItem to="/assessments" label="Assessments" icon="🧪" />
+            <NavItem to="/" label="Dashboard" icon="🏠" onClick={isMobile ? closeSidebar : undefined} />
+            <NavItem to="/jobs" label="Jobs" icon="💼" onClick={isMobile ? closeSidebar : undefined} />
+            <NavItem to="/candidates" label="Candidates" icon="👥" onClick={isMobile ? closeSidebar : undefined} />
+            <NavItem to="/assessments" label="Assessments" icon="🧪" onClick={isMobile ? closeSidebar : undefined} />
           </nav>
           <div className="sidebar-footer">
             <div className="user-avatar">AM</div>
@@ -34,7 +58,7 @@ function App() {
         </aside>
 
         <main className="main">
-          <Topbar />
+          <Topbar toggleSidebar={toggleSidebar} isMobile={isMobile} />
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/jobs" element={<Jobs />} />
@@ -50,15 +74,18 @@ function App() {
   );
 }
 
-function NavItem({ to, label, icon }) {
+function NavItem({ to, label, icon, onClick }) {
   const location = useLocation();
   const active = location.pathname === to;
   return (
-    <Link className={active ? "nav-item active" : "nav-item"} to={to}>{label}</Link>
+    <Link className={active ? "nav-item active" : "nav-item"} to={to} onClick={onClick}>
+      <span className="nav-icon">{icon}</span>
+      <span className="nav-label">{label}</span>
+    </Link>
   );
 }
 
-function Topbar() {
+function Topbar({ toggleSidebar, isMobile }) {
   const [term, setTerm] = useState("");
   const [results, setResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
@@ -118,6 +145,11 @@ function Topbar() {
 
   return (
     <header className="topbar" style={{ position: 'relative' }}>
+      {isMobile && (
+        <button className="mobile-menu-btn" onClick={toggleSidebar}>
+          ☰
+        </button>
+      )}
       {location.pathname === '/' ? (
         <div style={{ position: 'relative', width: '100%' }}>
           <input
