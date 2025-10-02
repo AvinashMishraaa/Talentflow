@@ -145,10 +145,10 @@ function Assessments() {
                   e.currentTarget.style.boxShadow = '';
                 }}
               >
-                <h3 style={{ margin: '0 0 8px 0', color: '#1e293b' }}>{job.title}</h3>
+                <h3 style={{ margin: '0 0 8px 0', color: 'var(--text)' }}>{job.title}</h3>
                 <p className="muted" style={{ margin: '0 0 12px 0', fontSize: 14 }}>{job.description}</p>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 12, color: '#64748b' }}>
+                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>
                     {jobAssessmentCount} assessment{jobAssessmentCount !== 1 ? 's' : ''}
                   </span>
                   <span style={{ fontSize: 12, color: '#3b82f6', fontWeight: 600 }}>
