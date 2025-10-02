@@ -38,11 +38,11 @@ REACT_APP_API_URL=your-api-endpoint
 
 Frontend Architecture
 
-* Framework: React 18 with functional components and hooks
-* Routing: React Router v6 for client-side navigation
-* State Management: React useState and useEffect hooks
-* Styling: CSS-in-JS with CSS custom properties for theming
-* Build Tool: Create React App with Webpack
+1 Framework: React 18 with functional components and hooks
+2 Routing: React Router v6 for client-side navigation
+3 State Management: React useState and useEffect hooks
+4 Styling: CSS-in-JS with CSS custom properties for theming
+5 Build Tool: Create React App with Webpack
 
 Component Structure
 
@@ -62,11 +62,11 @@ src/
 
 Key Features
 
-* Responsive Design: Mobile-first approach with breakpoints at 768px and 480px
-* Dark/Light Theme: CSS custom properties with theme switching
-* Drag & Drop: Native HTML5 drag and drop for job and candidate reordering
-* Real-time Search: Debounced search with URL parameter persistence
-* Audit Logging: Local storage-based activity tracking
+i   Responsive Design: Mobile-first approach with breakpoints at 768px and 480px
+ii  Dark/Light Theme: CSS custom properties with theme switching
+iii Drag & Drop: Native HTML5 drag and drop for job and candidate reordering
+iv  Real-time Search: Debounced search with URL parameter persistence
+v   Audit Logging: Local storage-based activity tracking
 
 🐛 Known Issues & Solutions
 
@@ -75,9 +75,9 @@ Key Features
    Root Cause: Drag event handlers on parent elements intercepted click events.
    Solution:
 
-* Added stopPropagation() to all Link components
-* Separated drag handles from clickable content
-* Fixed component imports in App.js to use correct exports
+i   Added stopPropagation() to all Link components
+ii  Separated drag handles from clickable content
+iii Fixed component imports in App.js to use correct exports
 
 2. Component Import Mismatch
    Issue: CandidateProfile and JobDetail components not loading correctly.
@@ -103,10 +103,10 @@ import Jobs, { JobDetail } from './pages/Jobs';
    Issue: Poor mobile experience with overlapping elements.
    Solution:
 
-* Implemented collapsible sidebar with hamburger menu
-* Added mobile-specific CSS media queries
-* Touch-friendly button sizes and spacing
-* Single-column layouts on mobile devices
+i   Implemented collapsible sidebar with hamburger menu
+ii  Added mobile-specific CSS media queries
+iii Touch-friendly button sizes and spacing
+iv  Single-column layouts on mobile devices
 
 🔧 Technical Decisions
 
@@ -114,73 +114,72 @@ import Jobs, { JobDetail } from './pages/Jobs';
    Decision: Use React's built-in useState and useEffect instead of Redux.
    Rationale:
 
-* Application complexity doesn't justify Redux overhead
-* Local state management sufficient for current scope
-* Easier to understand and maintain for team
+i   Application complexity doesn't justify Redux overhead
+ii  Local state management sufficient for current scope
+iii Easier to understand and maintain for team
 
 2. Drag & Drop Implementation
    Decision: Native HTML5 Drag & Drop API instead of third-party libraries.
    Rationale:
 
-* No additional dependencies
-* Better performance
-* Full control over drag behavior
-* Consistent with web standards
+i   No additional dependencies
+ii  Better performance
+iii Full control over drag behavior
+iv  Consistent with web standards
 
 3. Styling Approach
    Decision: CSS-in-JS with inline styles and CSS custom properties.
    Rationale:
 
-* Component-scoped styling
-* Dynamic theming support
-* No CSS naming conflicts
-* Easy to maintain and modify
+i   Component-scoped styling
+ii  Dynamic theming support
+iii No CSS naming conflicts
+iv  Easy to maintain and modify
 
 4. Data Persistence
    Decision: Local storage for audit logs and temporary data.
    Rationale:
 
-* No backend database required for demo
-* Persistent across browser sessions
-* Simple implementation
-* Easy to migrate to real database later
+i   No backend database required for demo
+ii  Persistent across browser sessions
+iii Simple implementation
+iv  Easy to migrate to real database later
 
 5. Routing Strategy
    Decision: Client-side routing with React Router.
    Rationale:
 
-* Single Page Application (SPA) experience
-* Fast navigation between pages
-* URL-based state management
-* SEO-friendly with proper meta tags
+i   Single Page Application (SPA) experience
+ii  Fast navigation between pages
+iii URL-based state management
+iv  SEO-friendly with proper meta tags
 
 6. Component Architecture
    Decision: Export multiple components from single files.
    Rationale:
 
-* Related components stay together
-* Easier imports and maintenance
-* Better code organization
-* Shared state between related components
+i   Related components stay together
+ii  Easier imports and maintenance
+iii Better code organization
+iv  Shared state between related components
 
 7. Mobile-First Design
    Decision: Responsive design starting from mobile breakpoints.
    Rationale:
 
-* Better mobile user experience
-* Progressive enhancement approach
-* Covers majority of users
-* Easier to scale up than down
+i   Better mobile user experience
+ii  Progressive enhancement approach
+iii Covers majority of users
+iv  Easier to scale up than down
 
 8. Build and Deployment
    Decision: Netlify for hosting with automatic deployments.
    Rationale:
 
-* Easy CI/CD integration with Git
-* Automatic HTTPS and CDN
-* Branch previews for testing
-* Cost-effective for small projects
+i   Easy CI/CD integration with Git
+ii  Automatic HTTPS and CDN
+iii Branch previews for testing
+iv  Cost-effective for small projects
 
 ---
 
-Would you like me to also **add emojis** (like 🚀, 🐛, 🔧) in the main section titles (`Setup`, `Architecture`, `Issues`, `Technical Decisions`) so the README looks more lively and human?
