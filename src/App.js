@@ -1,77 +1,117 @@
-import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from "react-router-dom";
-import Dashboard from "./pages/Dashboard";
-import Jobs, { JobDetail } from "./pages/Jobs";
-import Candidates, { CandidateProfile } from "./pages/Candidates";
-import Assessments from "./pages/Assessments";
-import AuditLog from "./pages/AuditLog";
-import "./App.css";
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
+import './App.css';
+import Dashboard from './pages/Dashboard';
+import Jobs from './pages/Jobs';
+import JobDetail from './pages/JobDetail';
+import Candidates from './pages/Candidates';
+import CandidateProfile from './pages/CandidateProfile';
+import Assessments from './pages/Assessments';
+import AuditLog from './pages/AuditLog';
+import Landing from "./pages/Landing";
 
 function App() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   useEffect(() => {
     const handleResize = () => {
-      const mobile = window.innerWidth <= 768;
-      setIsMobile(mobile);
-      if (!mobile) {
-        setSidebarOpen(false);
-      }
+      setIsMobile(window.innerWidth <= 768);
     };
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
-  const closeSidebar = () => setSidebarOpen(false);
-
   return (
     <Router>
-      <div className="app">
-        {/* Mobile overlay */}
-        {isMobile && sidebarOpen && (
-          <div className="mobile-overlay active" onClick={closeSidebar} />
-        )}
-        
-        <aside className={`sidebar ${isMobile && sidebarOpen ? 'mobile-open' : ''}`}>
-          <div className="brand">
-            <Link to="/" className="brand-link" onClick={isMobile ? closeSidebar : undefined}>
-              <div className="brand-logo">TF</div>
-              <div className="brand-name">TalentFlow</div>
-            </Link>
-          </div>
-          <nav className="nav">
-            <NavItem to="/" label="Dashboard" icon="🏠" onClick={isMobile ? closeSidebar : undefined} />
-            <NavItem to="/jobs" label="Jobs" icon="💼" onClick={isMobile ? closeSidebar : undefined} />
-            <NavItem to="/candidates" label="Candidates" icon="👥" onClick={isMobile ? closeSidebar : undefined} />
-            <NavItem to="/assessments" label="Assessments" icon="🧪" onClick={isMobile ? closeSidebar : undefined} />
-          </nav>
-          <div className="sidebar-footer">
-            <div className="user-avatar">AM</div>
-            <div className="user-meta">
-              <div className="user-name">Avinash Mishra</div>
-              <div className="user-role">HR Manager</div>
-            </div>
-          </div>
-        </aside>
-
-        <main className="main">
-          <Topbar toggleSidebar={toggleSidebar} isMobile={isMobile} />
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/jobs" element={<Jobs />} />
-            <Route path="/jobs/:jobId" element={<JobDetail />} />
-            <Route path="/candidates" element={<Candidates />} />
-            <Route path="/candidates/:id" element={<CandidateProfile />} />
-            <Route path="/assessments" element={<Assessments />} />
-            <Route path="/audit-log" element={<AuditLog />} />
-          </Routes>
-        </main>
-      </div>
+      <AppContent isMobile={isMobile} />
     </Router>
   );
+}
+
+function AppContent({ isMobile }) {
+  const location = useLocation();
+
+  return (
+    <div className="app">
+      {!isMobile && location.pathname !== '/' && (
+          <aside className="sidebar">
+            <div className="brand">
+              <Link to="/" className="brand-link">
+                <div className="brand-logo">TF</div>
+                <div className="brand-name">TalentFlow</div>
+              </Link>
+            </div>
+            <nav className="nav">
+              <NavItem to="/dashboard" label="Dashboard" icon="🏠" />
+              <NavItem to="/jobs" label="Jobs" icon="💼" />
+              <NavItem to="/candidates" label="Candidates" icon="👥" />
+              <NavItem to="/assessments" label="Assessments" icon="🧪" />
+            </nav>
+            <div className="sidebar-footer">
+              <div className="user-avatar">AM</div>
+              <div className="user-meta">
+                <div className="user-name">Avinash Mishra</div>
+                <div className="user-role">HR Manager</div>
+              </div>
+            </div>
+          </aside>
+        )}
+
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/dashboard" element={
+            <main className={`main ${isMobile ? 'mobile-main' : ''}`}>
+              <Topbar isMobile={isMobile} />
+              <Dashboard />
+              {isMobile && <MobileBottomNav />}
+            </main>
+          } />
+          <Route path="/jobs" element={
+            <main className={`main ${isMobile ? 'mobile-main' : ''}`}>
+              <Topbar isMobile={isMobile} />
+              <Jobs />
+              {isMobile && <MobileBottomNav />}
+            </main>
+          } />
+          <Route path="/jobs/:jobId" element={
+            <main className={`main ${isMobile ? 'mobile-main' : ''}`}>
+              <Topbar isMobile={isMobile} />
+              <JobDetail />
+              {isMobile && <MobileBottomNav />}
+            </main>
+          } />
+          <Route path="/candidates" element={
+            <main className={`main ${isMobile ? 'mobile-main' : ''}`}>
+              <Topbar isMobile={isMobile} />
+              <Candidates />
+              {isMobile && <MobileBottomNav />}
+            </main>
+          } />
+          <Route path="/candidates/:id" element={
+            <main className={`main ${isMobile ? 'mobile-main' : ''}`}>
+              <Topbar isMobile={isMobile} />
+              <CandidateProfile />
+              {isMobile && <MobileBottomNav />}
+            </main>
+          } />
+          <Route path="/assessments" element={
+            <main className={`main ${isMobile ? 'mobile-main' : ''}`}>
+              <Topbar isMobile={isMobile} />
+              <Assessments />
+              {isMobile && <MobileBottomNav />}
+            </main>
+          } />
+          <Route path="/audit-log" element={
+            <main className={`main ${isMobile ? 'mobile-main' : ''}`}>
+              <Topbar isMobile={isMobile} />
+              <AuditLog />
+              {isMobile && <MobileBottomNav />}
+            </main>
+          } />
+        </Routes>
+      </div>
+    );
 }
 
 function NavItem({ to, label, icon, onClick }) {
@@ -85,7 +125,31 @@ function NavItem({ to, label, icon, onClick }) {
   );
 }
 
-function Topbar({ toggleSidebar, isMobile }) {
+function MobileBottomNav() {
+  const location = useLocation();
+  return (
+    <nav className="mobile-bottom-nav">
+      <Link to="/dashboard" className={location.pathname === '/dashboard' ? 'mobile-nav-item active' : 'mobile-nav-item'}>
+        <span className="mobile-nav-icon">🏠</span>
+        <span className="mobile-nav-label">Dashboard</span>
+      </Link>
+      <Link to="/jobs" className={location.pathname.startsWith('/jobs') ? 'mobile-nav-item active' : 'mobile-nav-item'}>
+        <span className="mobile-nav-icon">💼</span>
+        <span className="mobile-nav-label">Jobs</span>
+      </Link>
+      <Link to="/candidates" className={location.pathname.startsWith('/candidates') ? 'mobile-nav-item active' : 'mobile-nav-item'}>
+        <span className="mobile-nav-icon">👥</span>
+        <span className="mobile-nav-label">Candidates</span>
+      </Link>
+      <Link to="/assessments" className={location.pathname.startsWith('/assessments') ? 'mobile-nav-item active' : 'mobile-nav-item'}>
+        <span className="mobile-nav-icon">🧪</span>
+        <span className="mobile-nav-label">Tests</span>
+      </Link>
+    </nav>
+  );
+}
+
+function Topbar({ isMobile }) {
   const [term, setTerm] = useState("");
   const [results, setResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
@@ -144,14 +208,14 @@ function Topbar({ toggleSidebar, isMobile }) {
   }, [term]);
 
   return (
-    <header className="topbar" style={{ position: 'relative' }}>
-      {isMobile && (
-        <button className="mobile-menu-btn" onClick={toggleSidebar}>
-          ☰
+    <header className={`topbar ${isMobile ? 'mobile-topbar' : ''}`} style={{ position: 'relative' }}>
+      {isMobile && location.pathname !== '/dashboard' && (
+        <button className="mobile-back-btn" onClick={() => navigate('/dashboard')}>
+          ← Dashboard
         </button>
       )}
-      {location.pathname === '/' ? (
-        <div style={{ position: 'relative', width: '100%' }}>
+      {location.pathname === '/dashboard' ? (
+        <div className="search-container" style={{ position: 'relative', flex: 1, maxWidth: isMobile ? 'calc(100% - 160px)' : 'calc(100% - 220px)', marginRight: '20px' }}>
           <input
             className="search"
             placeholder="Search jobs, candidates..."
@@ -187,9 +251,17 @@ function Topbar({ toggleSidebar, isMobile }) {
           )}
         </div>
       ) : (
-        <div style={{ flex: 1 }} />
+        <div className="page-title" style={{ flex: 1 }}>
+          <h2 style={{ margin: 0, fontSize: isMobile ? '18px' : '24px' }}>
+            {location.pathname === '/dashboard' ? 'Dashboard' :
+             location.pathname === '/jobs' ? 'Jobs' :
+             location.pathname === '/candidates' ? 'Candidates' :
+             location.pathname === '/assessments' ? 'Assessments' :
+             location.pathname === '/audit-log' ? 'Audit Log' : 'TalentFlow'}
+          </h2>
+        </div>
       )}
-      <div className="actions">
+      <div className={`actions ${isMobile ? 'mobile-actions' : ''}`}>
         <button className="icon-btn tooltip" onClick={() => setTheme(theme === "light" ? "dark" : "light")} data-tip={theme === "light" ? "Switch dark" : "Switch light"}>
           {theme === "light" ? "☀" : "🌙"}
         </button>

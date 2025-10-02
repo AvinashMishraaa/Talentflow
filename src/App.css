@@ -1,6 +1,10 @@
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: var(--bg);
+  color: var(--text);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 :root[data-theme='dark'] {
   color-scheme: dark;
@@ -11,11 +15,53 @@ body {
   --border: #1f2024;      
 }
 :root {
-  --bg: #fbfdff;
-  --panel: #f3f6ff;
-  --text: #0f1630;
-  --muted: #667085;
-  --border: #e4e8f5;
+  --bg: #f8fafc;
+  --panel: #ffffff;
+  --border: #e2e8f0;
+  --text: #1e293b;
+  --muted: #64748b;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0f0f23;
+  --panel: #1a1a2e;
+  --text: #eee6ff;
+  --muted: #a0a0aa;
+  --border: #2a2a3e;
+}
+
+:root[data-theme='dark'] .feature:hover {
+  box-shadow: 0 10px 24px rgba(0,0,0,.4);
+}
+
+:root[data-theme='dark'] .icon-btn:hover {
+  box-shadow: 0 10px 24px rgba(0,0,0,.5);
+}
+
+:root[data-theme='dark'] .menu-item:hover {
+  background: rgba(91,91,214,.2);
+}
+
+:root[data-theme='dark'] .nav-item:hover {
+  background: rgba(127, 127, 255, .2);
+}
+
+:root[data-theme='dark'] .search {
+  background: var(--panel);
+  color: var(--text);
+}
+
+:root[data-theme='dark'] .search::placeholder {
+  color: var(--muted);
+}
+
+:root[data-theme='dark'] .user-avatar {
+  color: var(--text);
+}
+
+:root[data-theme='dark'] .user-role {
+  color: var(--muted);
 }
 
 .app {
@@ -26,12 +72,15 @@ body {
 .sidebar {
   width: 260px;
   background: var(--panel);
-  padding: 16px;
+  backdrop-filter: blur(10px);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  transition: transform 0.3s ease, width 0.3s ease;
+  transition: width 0.3s ease, background-color 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 20px;
 }
+
 .collapse-btn { margin-left: auto; border: 1px solid var(--border); background: var(--panel); border-radius: 8px; height: 28px; width: 28px; cursor: pointer; color: var(--text); }
 
 .brand {
@@ -59,7 +108,13 @@ body {
   color: var(--text);
 }
 
-.nav { margin-top: 8px; }
+.nav { 
+  margin-top: 8px; 
+  display: flex; 
+  flex-direction: column; 
+  gap: 4px; 
+  flex: 1;
+}
 
 .nav-item {
   display: flex;
@@ -90,15 +145,29 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px;
+  padding: 16px 0 0 0;
   border-top: 1px solid var(--border);
+}
+
+.topbar {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  backdrop-filter: blur(10px);
+  z-index: 100;
 }
 
 .user-avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #e5e7eb;
+  background: var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -116,15 +185,11 @@ body {
   flex-direction: column;
   overflow: hidden;
 }
-
-.topbar {
-  height: 64px;
-  display: flex;
-  align-items: center;
-  padding: 0 20px;
-  border-bottom: 1px solid var(--border);
-  gap: 12px;
+.landing-page {
+  width: 100vw;
+  margin-left: 0;
 }
+
 
 .search {
   flex: 1;
@@ -153,11 +218,18 @@ body {
 .menu-item { padding: 8px; border-radius: 8px; }
 .menu-item:hover { background: #eef2ff; }
 
-.content { padding: 20px; overflow: auto; height: calc(100vh - 64px); display: flex; flex-direction: column; }
+.content { 
+  padding: 20px; 
+  overflow: auto; 
+  height: calc(100vh - 64px); 
+  display: flex; 
+  flex-direction: column; 
+  background: var(--bg);
+}
 .content.dashboard { justify-content: space-between; }
 
 .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.card { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; transition: background-color 0.3s ease; }
 .card h3 { margin: 0 0 6px 0; font-size: 16px; }
 .muted { color: var(--muted); font-size: 13px; }
 
@@ -174,7 +246,7 @@ a:hover { text-decoration: none; }
 .hero-text h1 { margin: 0 0 8px 0; font-size: 36px; }
 
 .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 32px auto 20px; width: 100%; max-width: 1200px; }
-.feature { display: grid; grid-template-columns: 64px 1fr 24px; gap: 12px; background: linear-gradient(var(--panel), var(--panel)) padding-box, linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02)) border-box; border: 1px solid transparent; border-radius: 16px; padding: 24px; transition: box-shadow .15s ease, transform .05s ease; min-height: 180px; }
+.feature { display: grid; grid-template-columns: 64px 1fr 24px; gap: 12px; background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 24px; transition: box-shadow .15s ease, transform .05s ease, background-color 0.3s ease; min-height: 180px; }
 .feature:hover { box-shadow: 0 10px 24px rgba(0,0,0,.12); transform: translateY(-1px); }
 .feature-link { text-decoration: none; color: inherit; }
 .feature-icon { width: 64px; height: 64px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; }
@@ -189,52 +261,111 @@ a:hover { text-decoration: none; }
 .contact-col.left { text-align: left; }
 .contact-col.right { text-align: right; }
 
-/* Mobile Responsive Styles */
 @media (max-width: 768px) {
   .app {
     flex-direction: column;
   }
   
-  .sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100vh;
-    z-index: 1000;
-    width: 280px;
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
-  }
-  
-  .sidebar.mobile-open {
-    transform: translateX(0);
-  }
-  
-  .main {
+  .main.mobile-main {
     width: 100%;
     margin-left: 0;
+    padding-bottom: 70px;
   }
   
-  .topbar {
-    padding: 0 16px;
+  .topbar.mobile-topbar {
+    padding: 0 12px;
     height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
   
-  .mobile-menu-btn {
-    display: block;
+  .mobile-back-btn {
     background: none;
     border: none;
-    font-size: 20px;
-    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
     color: var(--text);
+    cursor: pointer;
+    padding: 8px 0;
+    white-space: nowrap;
+  }
+  
+  .search-container {
+    flex: 1;
     margin-right: 12px;
+  }
+  
+  .search-container .search {
+    width: 100%;
+    height: 40px;
+    font-size: 16px;
+  }
+  
+  .page-title {
+    flex: 1;
+  }
+  
+  .actions.mobile-actions {
+    gap: 8px;
+  }
+  
+  .actions.mobile-actions .icon-btn {
+    height: 40px;
+    width: 40px;
+    font-size: 18px;
   }
   
   .content {
     padding: 16px;
-    height: calc(100vh - 56px);
+    height: calc(100vh - 56px - 70px);
+    overflow-y: auto;
   }
   
+  .mobile-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 70px;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    z-index: 1000;
+    padding: 8px 0;
+  }
+  
+  .mobile-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: var(--muted);
+    padding: 4px 8px;
+    border-radius: 8px;
+    min-width: 60px;
+    transition: all 0.2s ease;
+  }
+  
+  .mobile-nav-item.active {
+    color: #5b5bd6;
+    background: rgba(91, 91, 214, 0.1);
+  }
+  
+  .mobile-nav-icon {
+    font-size: 20px;
+    margin-bottom: 2px;
+  }
+  
+  .mobile-nav-label {
+    font-size: 11px;
+    font-weight: 500;
+  }
+  
+  /* Mobile Cards and Grids */
   .cards {
     grid-template-columns: 1fr;
     gap: 12px;
@@ -308,30 +439,18 @@ a:hover { text-decoration: none; }
     max-width: 400px;
     margin: 16px;
   }
-  
-  /* Search results */
-  .search-results {
-    left: 16px !important;
-    right: 16px !important;
-    top: 56px !important;
-  }
 }
 
 @media (max-width: 480px) {
-  .topbar {
-    padding: 0 12px;
+  .topbar.mobile-topbar {
+    padding: 0 8px;
   }
   
   .content {
     padding: 12px;
   }
   
-  .icon-btn {
-    height: 32px;
-    width: 32px;
-  }
-  
-  .search {
+  .search-container .search {
     height: 36px;
     font-size: 14px;
   }
@@ -340,35 +459,205 @@ a:hover { text-decoration: none; }
     font-size: 24px;
   }
   
-  .brand-name {
-    font-size: 16px;
+  .mobile-nav-icon {
+    font-size: 18px;
   }
   
-  .assessment-builder-actions button {
-    font-size: 12px;
-    padding: 6px 8px;
+  .mobile-nav-label {
+    font-size: 10px;
   }
-}
 
-/* Hide mobile menu button on desktop */
-.mobile-menu-btn {
-  display: none;
-}
+  /* Mobile Assessment Enhancements */
+  .assessment-job-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
 
-/* Mobile overlay */
-.mobile-overlay {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 999;
-}
+  .assessment-builder-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
 
-@media (max-width: 768px) {
-  .mobile-overlay.active {
-    display: block;
+  .assessment-question-options {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .assessment-question-option {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  .assessment-question-option input[type="text"] {
+    width: 100% !important;
+  }
+
+  .modal-card {
+    width: calc(100vw - 32px) !important;
+    max-width: 400px !important;
+    margin: 16px !important;
+  }
+
+  .assessment-buttons {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .assessment-buttons button {
+    width: 100% !important;
+  }
+
+  /* Enhanced Mobile Touch Targets */
+  .card {
+    padding: 20px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .icon-btn {
+    min-height: 44px !important;
+    padding: 12px 16px !important;
+    font-size: 16px !important;
+  }
+
+  /* Mobile Typography */
+  h1 {
+    font-size: 2rem !important;
+    line-height: 1.2 !important;
+  }
+
+  h2 {
+    font-size: 1.5rem !important;
+    line-height: 1.3 !important;
+  }
+
+  h3 {
+    font-size: 1.25rem !important;
+  }
+
+  /* Mobile Form Inputs */
+  input, select, textarea {
+    font-size: 16px !important;
+    padding: 12px !important;
+    min-height: 44px !important;
+  }
+
+  .search {
+    font-size: 16px !important;
+    padding: 12px 16px !important;
+  }
+
+  /* Mobile Preview Cards */
+  .assessment-preview-question {
+    padding: 20px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .assessment-preview-option {
+    padding: 12px !important;
+    margin-bottom: 8px !important;
+    font-size: 16px !important;
+  }
+
+  /* Mobile Back Buttons */
+  .mobile-back-btn {
+    font-size: 16px !important;
+    padding: 8px 0 !important;
+    margin-bottom: 16px !important;
+  }
+
+  /* Mobile Candidates Drag & Drop */
+  .candidates-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    overflow-x: auto !important;
+  }
+
+  .candidate-stage-card {
+    margin-bottom: 16px !important;
+  }
+
+  .candidate-stage-header {
+    padding: 16px !important;
+    min-height: auto !important;
+  }
+
+  .candidate-stage-title {
+    font-size: 14px !important;
+    line-height: 1.3 !important;
+    min-height: auto !important;
+  }
+
+  .candidate-stage-subtitle {
+    font-size: 11px !important;
+    margin-top: 4px !important;
+  }
+
+  .candidate-list {
+    gap: 8px !important;
+    padding: 0 8px 8px 8px !important;
+  }
+
+  .candidate-card {
+    height: auto !important;
+    min-height: 100px !important;
+    padding: 12px !important;
+    touch-action: manipulation;
+  }
+
+  .candidate-avatar {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 12px !important;
+  }
+
+  .candidate-info {
+    flex: 1 !important;
+  }
+
+  .candidate-name {
+    font-size: 14px !important;
+    line-height: 1.3 !important;
+  }
+
+  .candidate-email {
+    font-size: 11px !important;
+  }
+
+  .candidate-job {
+    font-size: 10px !important;
+    margin-top: 2px !important;
+  }
+
+  .candidate-actions {
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    margin-top: 8px !important;
+  }
+
+  .candidate-actions button {
+    padding: 4px 6px !important;
+    font-size: 10px !important;
+    min-width: 60px !important;
+  }
+
+  /* Mobile Drag Indicators */
+  .drag-indicator {
+    height: 3px !important;
+    margin: 2px 0 !important;
+  }
+
+  /* Mobile Search Filters */
+  .candidates-filters {
+    flex-direction: column !important;
+    gap: 8px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .candidates-filters select,
+  .candidates-filters input {
+    width: 100% !important;
+    font-size: 16px !important;
+    padding: 12px !important;
   }
 }

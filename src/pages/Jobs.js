@@ -160,7 +160,7 @@ function Jobs() {
   return (
     <div className="content">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <h2 style={{ margin: 0 }}>Jobs</h2>
+        <div></div>
         <button onClick={openCreate} className="icon-btn" style={{ width: "auto", padding: "0 12px" }}>+ New Job</button>
       </div>
 

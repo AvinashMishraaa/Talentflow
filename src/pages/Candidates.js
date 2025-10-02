@@ -3,7 +3,6 @@ import { Link, useLocation, useParams } from "react-router-dom";
 
 const STAGES = ["applied", "screen", "tech", "offer", "hired", "rejected"];
 
-// Enhanced stage descriptions
 const getStageTitle = (stage, count) => {
   const stageInfo = {
     applied: { title: "📝 New Applications", subtitle: "Recently submitted candidates" },
@@ -21,12 +20,10 @@ const getStageTitle = (stage, count) => {
   };
 };
 
-// Generate avatar initials from name
 const getInitials = (name) => {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 };
 
-// Get avatar background color based on name
 const getAvatarColor = (name) => {
   const colors = [
     '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', 
@@ -36,7 +33,6 @@ const getAvatarColor = (name) => {
   return colors[hash % colors.length];
 };
 
-// Get button style based on stage
 const getButtonStyle = (stage) => {
   const styles = {
     applied: { backgroundColor: '#dbeafe', color: '#1e40af', border: '1px solid #93c5fd' },
@@ -49,26 +45,28 @@ const getButtonStyle = (stage) => {
   return styles[stage] || { backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db' };
 };
 
-// Get available next stages based on current stage
 const getAvailableStages = (currentStage) => {
   const stageFlow = {
     applied: ['screen', 'rejected'],
     screen: ['tech', 'rejected'],
     tech: ['offer', 'rejected'],
     offer: ['hired', 'rejected'],
-    hired: [], // No further actions
-    rejected: [] // No further actions
+    hired: [],
+    rejected: []
   };
   return stageFlow[currentStage] || [];
 };
 
 function Candidates() {
   const [candidates, setCandidates] = useState([]);
+  const [jobs, setJobs] = useState([]);
   const [search, setSearch] = useState("");
   const [stage, setStage] = useState("");
-  // Pagination removed
+  const [jobFilter, setJobFilter] = useState("");
+  const [draggedCandidate, setDraggedCandidate] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [dragOverStage, setDragOverStage] = useState(null);
   const containerRef = useRef(null);
-  // Removed unused navigate to fix lint error
   const location = useLocation();
 
   useEffect(() => {
@@ -77,28 +75,66 @@ function Candidates() {
     setSearch(s);
   }, [location.search]);
 
+  useEffect(() => {
+    fetch('/jobs?page=1&pageSize=100').then(r=>r.json()).then(p=> setJobs(p.data || []));
+  }, []);
+
   const load = React.useCallback(async () => {
-    const params = new URLSearchParams(); 
-  if (search) params.set("search", search);
-  if (stage) params.set("stage", stage);
-  params.set("pageSize", "2000"); 
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    if (stage) params.set("stage", stage);
+    if (jobFilter) params.set("jobId", jobFilter);
+    params.set("pageSize", "2000"); 
     const res = await fetch(`/candidates?${params.toString()}`);
     const pageData = await res.json();
     setCandidates(pageData.data);
-  }, [search, stage]);
+  }, [search, stage, jobFilter]);
 
-  useEffect(() => { load(); }, [load]);
-  useEffect(() => { const id = setTimeout(load, 300); return () => clearTimeout(id); }, [load]);
+  React.useEffect(() => { load(); }, [load]);
+  React.useEffect(() => { const id = setTimeout(load, 300); return () => clearTimeout(id); }, [load]);
 
-  const byStage = useMemo(() => {
+  const byStage = React.useMemo(() => {
     const map = Object.fromEntries(STAGES.map(s => [s, []]));
     for (const c of candidates) map[c.stage]?.push(c);
     return map;
   }, [candidates]);
 
-  const move = async (id, stage) => {
+  const move = async (id, stage, targetIndex = null) => {
+    if (targetIndex !== null) {
+      setCandidates(prevCandidates => {
+        const newCandidates = [...prevCandidates];
+        const candidateIndex = newCandidates.findIndex(c => c.id === id);
+        
+        if (candidateIndex !== -1) {
+          const [movedCandidate] = newCandidates.splice(candidateIndex, 1);
+          
+          movedCandidate.stage = stage;
+          
+          const targetStageCandidates = newCandidates.filter(c => c.stage === stage);
+          const clampedIndex = Math.min(targetIndex, targetStageCandidates.length);
+          
+          let insertPosition = newCandidates.length;
+          let currentStageCount = 0;
+          
+          for (let i = 0; i < newCandidates.length; i++) {
+            if (newCandidates[i].stage === stage) {
+              if (currentStageCount === clampedIndex) {
+                insertPosition = i;
+                break;
+              }
+              currentStageCount++;
+            }
+          }
+          
+          newCandidates.splice(insertPosition, 0, movedCandidate);
+        }
+        
+        return newCandidates;
+      });
+    }
+    
     await fetch(`/candidates/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ stage }) });
-    // Audit log entry
+    
     try {
       const log = JSON.parse(localStorage.getItem("tf_audit_log") || "[]");
       log.unshift({
@@ -108,21 +144,127 @@ function Candidates() {
       });
       localStorage.setItem("tf_audit_log", JSON.stringify(log.slice(0, 100)));
     } catch {}
-    load();
+    
+    if (targetIndex === null) {
+      load();
+    }
+  };
+
+  const reorderCandidates = (stageKey, fromIndex, toIndex) => {
+    const stageCandidates = [...byStage[stageKey]];
+    const [movedCandidate] = stageCandidates.splice(fromIndex, 1);
+    stageCandidates.splice(toIndex, 0, movedCandidate);
+    
+    setCandidates(prevCandidates => {
+      const newCandidates = [...prevCandidates];
+      const stageStartIndex = newCandidates.findIndex(c => c.stage === stageKey);
+      const stageCandidatesInOriginal = newCandidates.filter(c => c.stage === stageKey);
+      
+      stageCandidatesInOriginal.forEach(c => {
+        const index = newCandidates.findIndex(candidate => candidate.id === c.id);
+        if (index !== -1) newCandidates.splice(index, 1);
+      });
+      
+      stageCandidates.forEach((candidate, index) => {
+        newCandidates.splice(stageStartIndex + index, 0, candidate);
+      });
+      
+      return newCandidates;
+    });
+  };
+
+  const handleDragStart = (e, candidate) => {
+    setDraggedCandidate(candidate);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.target.outerHTML);
+    e.target.style.opacity = '0.5';
+  };
+
+  const handleDragEnd = (e) => {
+    e.target.style.opacity = '1';
+    setDraggedCandidate(null);
+    setDragOverIndex(null);
+    setDragOverStage(null);
+  };
+
+  const handleDragOver = (e, stageKey, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverStage(stageKey);
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = (e) => {
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setDragOverIndex(null);
+      setDragOverStage(null);
+    }
+  };
+
+  const handleDrop = (e, targetStage, targetIndex) => {
+    e.preventDefault();
+    
+    if (!draggedCandidate) return;
+    
+    const sourceStage = draggedCandidate.stage;
+    const sourceIndex = byStage[sourceStage].findIndex(c => c.id === draggedCandidate.id);
+    
+    if (sourceStage === targetStage) {
+      if (sourceIndex !== targetIndex) {
+        reorderCandidates(targetStage, sourceIndex, targetIndex);
+      }
+    } else {
+      move(draggedCandidate.id, targetStage, targetIndex);
+    }
+    
+    setDraggedCandidate(null);
+    setDragOverIndex(null);
+    setDragOverStage(null);
   };
 
   const visibleStages = stage ? [stage] : STAGES;
 
   return (
     <div className="content" ref={containerRef}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <h2 style={{ margin: 0 }}>Candidates</h2>
-        <div style={{ display: "flex", gap: 8 }}>
-          <select className="search" style={{ width: 160 }} value={stage} onChange={e => setStage(e.target.value)}>
+      <div className="candidates-filters" style={{ 
+        display: "flex", 
+        justifyContent: "space-between", 
+        alignItems: "center", 
+        marginBottom: 12,
+        flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
+        gap: window.innerWidth <= 768 ? 8 : 0
+      }}>
+        <div style={{ 
+          display: "flex", 
+          gap: 8,
+          width: window.innerWidth <= 768 ? '100%' : 'auto',
+          flexDirection: window.innerWidth <= 768 ? 'column' : 'row'
+        }}>
+          <select 
+            className="search" 
+            style={{ width: window.innerWidth <= 768 ? '100%' : 160 }} 
+            value={stage} 
+            onChange={e => setStage(e.target.value)}
+          >
             <option value="">All stages</option>
             {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          <input className="search" placeholder="Search by name or email" value={search} onChange={e => setSearch(e.target.value)} style={{ width: 320 }} />
+          <select 
+            className="search" 
+            style={{ width: window.innerWidth <= 768 ? '100%' : 180 }} 
+            value={jobFilter} 
+            onChange={e => setJobFilter(e.target.value)}
+          >
+            <option value="">All job roles</option>
+            {jobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}
+          </select>
+          <input 
+            className="search" 
+            placeholder="Search by name or email" 
+            value={search} 
+            onChange={e => setSearch(e.target.value)} 
+            style={{ width: window.innerWidth <= 768 ? '100%' : 280 }} 
+          />
         </div>
       </div>
 
@@ -138,59 +280,150 @@ function Candidates() {
                   {getStageTitle(stage, byStage[stage]?.length || 0).subtitle}
                 </div>
               </div>
-              <VirtualizedCandidateList
-                scrollParentRef={containerRef}
-                items={byStage[stage] || []}
-                renderItem={(c) => (
-                  <li key={c.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10, background: "var(--bg)", height: 120, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }} draggable onDragStart={(e) => e.dataTransfer.setData('id', String(c.id))} onDragOver={(e) => e.preventDefault()} onDrop={(e) => move(Number(e.dataTransfer.getData('id')), stage)}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-                      <div style={{ 
-                        width: 40, 
-                        height: 40, 
-                        borderRadius: '50%', 
-                        backgroundColor: getAvatarColor(c.name),
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontWeight: 600,
-                        fontSize: 14
-                      }}>
-                        {getInitials(c.name)}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 600 }}><Link to={`/candidates/${c.id}`}>{c.name}</Link></div>
-                        <div className="muted" style={{ fontSize: 12 }}>{c.email}</div>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
-                      {getAvailableStages(stage).map(s => (
-                        <button 
-                          key={s} 
-                          onClick={() => move(c.id, s)}
-                          style={{
-                            ...getButtonStyle(s),
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            fontSize: '12px',
-                            fontWeight: 500,
-                            cursor: 'pointer'
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 8, alignItems: "stretch", minHeight: 200 }}>
+                {(byStage[stage] || []).map((c, index) => (
+                  <React.Fragment key={c.id}>
+                    {dragOverStage === stage && dragOverIndex === index && (
+                      <div style={{
+                        height: 4,
+                        background: '#3b82f6',
+                        borderRadius: 2,
+                        margin: '4px 0'
+                      }} />
+                    )}
+                    <li 
+                      className="candidate-card"
+                      style={{ 
+                        border: draggedCandidate?.id === c.id ? "2px dashed #3b82f6" : "1px solid var(--border)", 
+                        borderRadius: 10, 
+                        padding: window.innerWidth <= 768 ? 12 : 10, 
+                        background: "var(--bg)", 
+                        height: window.innerWidth <= 768 ? 'auto' : 120,
+                        minHeight: window.innerWidth <= 768 ? 100 : 120,
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        justifyContent: 'space-between', 
+                        boxSizing: 'border-box',
+                        cursor: 'grab',
+                        transition: 'all 0.2s ease',
+                        touchAction: 'manipulation'
+                      }} 
+                      draggable 
+                      onDragStart={(e) => handleDragStart(e, c)}
+                      onDragEnd={handleDragEnd}
+                      onDragOver={(e) => handleDragOver(e, stage, index)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, stage, index)}
+                    >
+                      <div className="candidate-info" style={{ display: 'flex', alignItems: 'center', gap: window.innerWidth <= 768 ? 8 : 10, flex: 1 }}>
+                        <div 
+                          className="candidate-avatar"
+                          style={{ 
+                            width: window.innerWidth <= 768 ? 32 : 40, 
+                            height: window.innerWidth <= 768 ? 32 : 40, 
+                            borderRadius: '50%', 
+                            backgroundColor: getAvatarColor(c.name),
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            fontWeight: 600,
+                            fontSize: window.innerWidth <= 768 ? 12 : 14
                           }}
                         >
-                          {s.charAt(0).toUpperCase() + s.slice(1)}
-                        </button>
-                      ))}
-                    </div>
-                  </li>
-                )}
-              />
+                          {getInitials(c.name)}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div 
+                            className="candidate-name"
+                            style={{ 
+                              fontWeight: 600,
+                              fontSize: window.innerWidth <= 768 ? 14 : 16,
+                              lineHeight: 1.3
+                            }}
+                          >
+                            <Link to={`/candidates/${c.id}`}>{c.name}</Link>
+                          </div>
+                          <div 
+                            className="candidate-email muted" 
+                            style={{ 
+                              fontSize: window.innerWidth <= 768 ? 11 : 12 
+                            }}
+                          >
+                            {c.email}
+                          </div>
+                          <div 
+                            className="candidate-job"
+                            style={{ 
+                              fontSize: window.innerWidth <= 768 ? 10 : 11, 
+                              color: '#5b5bd6', 
+                              fontWeight: 500, 
+                              marginTop: 2 
+                            }}
+                          >
+                            {c.jobTitle || c.appliedFor || 'No Job Assigned'}
+                          </div>
+                        </div>
+                      </div>
+                      <div 
+                        className="candidate-actions"
+                        style={{ 
+                          display: "flex", 
+                          gap: window.innerWidth <= 768 ? 4 : 6, 
+                          flexWrap: 'wrap', 
+                          marginTop: 8 
+                        }}
+                      >
+                        {getAvailableStages(stage).map(s => (
+                          <button 
+                            key={s} 
+                            onClick={() => move(c.id, s)}
+                            style={{
+                              ...getButtonStyle(s),
+                              padding: window.innerWidth <= 768 ? '4px 6px' : '4px 8px',
+                              borderRadius: '4px',
+                              fontSize: window.innerWidth <= 768 ? 10 : 12,
+                              fontWeight: 500,
+                              cursor: 'pointer',
+                              minWidth: window.innerWidth <= 768 ? 60 : 'auto'
+                            }}
+                          >
+                            {s.charAt(0).toUpperCase() + s.slice(1)}
+                          </button>
+                        ))}
+                      </div>
+                    </li>
+                    {dragOverStage === stage && dragOverIndex === index + 1 && (
+                      <div style={{
+                        height: 4,
+                        background: '#3b82f6',
+                        borderRadius: 2,
+                        margin: '4px 0'
+                      }} />
+                    )}
+                  </React.Fragment>
+                ))}
+                <div 
+                  style={{ minHeight: 20 }}
+                  onDragOver={(e) => handleDragOver(e, stage, byStage[stage]?.length || 0)}
+                  onDrop={(e) => handleDrop(e, stage, byStage[stage]?.length || 0)}
+                />
+              </ul>
             </div>
           ))}
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(${visibleStages.length}, 1fr)`, gap: 12 }}>
+        <div 
+          className="candidates-grid"
+          style={{ 
+            display: "grid", 
+            gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : `repeat(${visibleStages.length}, 1fr)`, 
+            gap: window.innerWidth <= 768 ? 8 : 12,
+            overflowX: window.innerWidth <= 768 ? 'auto' : 'visible'
+          }}
+        >
           {visibleStages.map(stage => (
-            <div className="card" key={stage} style={{ minHeight: 300 }}>
+            <div className="card candidate-stage-card" key={stage} style={{ minHeight: window.innerWidth <= 768 ? 200 : 300 }}>
               <div style={{ marginBottom: 12, minHeight: 100, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: 8 }}>
                 <div style={{ fontWeight: 700, fontSize: 16, lineHeight: '24px', minHeight: 60, display: 'flex', alignItems: 'flex-start', paddingTop: 4 }}>
                   {getStageTitle(stage, byStage[stage]?.length || 0).title}
@@ -199,18 +432,47 @@ function Candidates() {
                   {getStageTitle(stage, byStage[stage]?.length || 0).subtitle}
                 </div>
               </div>
-              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 8, alignItems: "stretch" }}>
-                {(byStage[stage] || []).map(c => (
-                  <li key={c.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10, background: "var(--bg)", height: 120, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }} draggable onDragStart={(e) => e.dataTransfer.setData('id', String(c.id))} onDragOver={(e) => e.preventDefault()} onDrop={(e) => move(Number(e.dataTransfer.getData('id')), stage)}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-                      <div style={{ 
-                        width: 40, 
-                        height: 40, 
-                        borderRadius: '50%', 
-                        backgroundColor: getAvatarColor(c.name),
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 8, alignItems: "stretch", minHeight: 200 }}>
+                {(byStage[stage] || []).map((c, index) => (
+                  <React.Fragment key={c.id}>
+                    {dragOverStage === stage && dragOverIndex === index && (
+                      <div style={{
+                        height: 4,
+                        background: '#3b82f6',
+                        borderRadius: 2,
+                        margin: '4px 0'
+                      }} />
+                    )}
+                    <li 
+                      style={{ 
+                        border: draggedCandidate?.id === c.id ? "2px dashed #3b82f6" : "1px solid var(--border)", 
+                        borderRadius: 10, 
+                        padding: 10, 
+                        background: "var(--bg)", 
+                        height: 120, 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        justifyContent: 'space-between', 
+                        boxSizing: 'border-box',
+                        cursor: 'grab',
+                        transition: 'all 0.2s ease'
+                      }} 
+                      draggable 
+                      onDragStart={(e) => handleDragStart(e, c)}
+                      onDragEnd={handleDragEnd}
+                      onDragOver={(e) => handleDragOver(e, stage, index)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, stage, index)}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+                        <div style={{ 
+                          width: 40, 
+                          height: 40, 
+                          borderRadius: '50%', 
+                          backgroundColor: getAvatarColor(c.name),
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                         color: 'white',
                         fontWeight: 600,
                         fontSize: 14
@@ -220,6 +482,9 @@ function Candidates() {
                       <div>
                         <div style={{ fontWeight: 600 }}><Link to={`/candidates/${c.id}`}>{c.name}</Link></div>
                         <div className="muted" style={{ fontSize: 12 }}>{c.email}</div>
+                        <div style={{ fontSize: 11, color: '#5b5bd6', fontWeight: 500, marginTop: 2 }}>
+                          {c.jobTitle || c.appliedFor || 'No Job Assigned'}
+                        </div>
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
@@ -241,14 +506,28 @@ function Candidates() {
                       ))}
                     </div>
                   </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+                  {dragOverStage === stage && dragOverIndex === index + 1 && (
+                    <div style={{
+                      height: 4,
+                      background: '#3b82f6',
+                      borderRadius: 2,
+                      margin: '4px 0'
+                    }} />
+                  )}
+                </React.Fragment>
+              ))}
+              <div 
+                style={{ minHeight: 20 }}
+                onDragOver={(e) => handleDragOver(e, stage, byStage[stage]?.length || 0)}
+                onDrop={(e) => handleDrop(e, stage, byStage[stage]?.length || 0)}
+              />
+            </ul>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+);
 }
 
 export default Candidates;
@@ -268,7 +547,7 @@ export function CandidateProfile() {
   useEffect(() => {
     fetch(`/candidates?search=&page=1&pageSize=1&id=${id}`);
     fetch(`/candidates`).then(r => r.json()).then(p => {
-      const all = Array.isArray(p.data) ? p.data : p; // compatibility
+      const all = Array.isArray(p.data) ? p.data : p;
       const found = all.find(c => String(c.id) === String(id));
       setCandidate(found || null);
     });
@@ -290,14 +569,12 @@ export function CandidateProfile() {
     const value = e.target.value;
     setText(value);
     
-    // Check for @ mentions
     const cursorPos = e.target.selectionStart;
     const textBeforeCursor = value.slice(0, cursorPos);
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
     
     if (lastAtIndex !== -1) {
       const textAfterAt = textBeforeCursor.slice(lastAtIndex + 1);
-      // Only show suggestions if @ is at word boundary and no spaces after @
       if (!textAfterAt.includes(' ') && (lastAtIndex === 0 || /\s/.test(textBeforeCursor[lastAtIndex - 1]))) {
         const filtered = mentionOptions.filter(name => 
           name.toLowerCase().includes(textAfterAt.toLowerCase())
@@ -308,7 +585,6 @@ export function CandidateProfile() {
           setActiveSuggestion(0);
           setShowSuggestions(true);
           
-          // Calculate position for suggestions dropdown
           const input = e.target;
           const rect = input.getBoundingClientRect();
           setSuggestionPosition({
@@ -327,7 +603,6 @@ export function CandidateProfile() {
   };
 
   const insertMention = (name) => {
-    // Store current cursor position before any DOM changes
     const cursorPos = inputRef.current?.selectionStart || text.length;
     const textBeforeCursor = text.slice(0, cursorPos);
     const textAfterCursor = text.slice(cursorPos);
@@ -338,14 +613,13 @@ export function CandidateProfile() {
       setText(newText);
       setShowSuggestions(false);
       
-      // Focus back to input and set cursor position
       setTimeout(() => {
         if (inputRef.current) {
           inputRef.current.focus();
-          const newCursorPos = lastAtIndex + name.length + 2; // +2 for @ and space
+          const newCursorPos = lastAtIndex + name.length + 2;
           inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
         }
-      }, 10); // Slightly longer timeout to ensure DOM updates
+      }, 10);
     }
   };
 
@@ -376,12 +650,10 @@ export function CandidateProfile() {
         setShowSuggestions(false);
         break;
       default:
-        // No action needed for other keys
         break;
     }
   };
 
-  // Close suggestions when clicking outside
   React.useEffect(() => {
     const handleClickOutside = (e) => {
       if (inputRef.current && !inputRef.current.contains(e.target)) {
@@ -440,7 +712,7 @@ export function CandidateProfile() {
                 <div
                   key={name}
                   onMouseDown={(e) => {
-                    e.preventDefault(); // Prevent input from losing focus
+                    e.preventDefault();
                     insertMention(name);
                   }}
                   onClick={() => insertMention(name)}
@@ -472,7 +744,7 @@ export function CandidateProfile() {
 }
 
 function VirtualizedCandidateList({ scrollParentRef, items, renderItem }) {
-  const ITEM_HEIGHT = 128; // Updated to match new fixed height (120px + 8px gap)
+  const ITEM_HEIGHT = 128;
   const [viewport, setViewport] = useState({ top: 0, height: 600 });
 
   useEffect(() => {

@@ -6,8 +6,8 @@ function Dashboard() {
     <div className="content dashboard">
       <section className="hero">
         <div className="hero-text">
-          <h1>Everything You Need To Hire Great Talent</h1>
-          <p className="muted">Powerful features designed to make your hiring process efficient and effective.</p>
+          <h1>TalentFlow HR Management System</h1>
+          <p className="muted">Manage job postings, track candidates through your hiring pipeline, create assessments, and maintain organized records - all in one place.</p>
         </div>
       </section>
 

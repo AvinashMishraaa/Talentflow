@@ -1,8 +1,6 @@
-// filepath: src/pages/AuditLog.js
 import React from "react";
 
 const getAuditLog = () => {
-  // For demo, read from localStorage
   try {
     return JSON.parse(localStorage.getItem("tf_audit_log") || "[]");
   } catch {
@@ -14,7 +12,6 @@ function AuditLog() {
   const log = getAuditLog();
   return (
     <div className="content">
-      <h2>Audit Log</h2>
       <div className="card">
         <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
           {log.length === 0 && <li className="muted">No actions recorded yet.</li>}
