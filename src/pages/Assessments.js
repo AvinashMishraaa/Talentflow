@@ -3,9 +3,10 @@ import { useSearchParams } from "react-router-dom";
 
 function Assessments() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const selectedJobId = Number(searchParams.get('jobId'));  const builderMode = searchParams.get('builder') === '1';
-  const previewMode = searchParams.get('preview');
-  const editMode = searchParams.get('edit');
+  const selectedJobId = searchParams.get('jobId') ? Number(searchParams.get('jobId')) : null;
+  const builderMode = searchParams.get('builder') === '1';
+  const previewMode = searchParams.get('preview') ? Number(searchParams.get('preview')) : null;
+  const editMode = searchParams.get('edit') ? Number(searchParams.get('edit')) : null;
 
   const [jobs, setJobs] = useState([]);
   const [assessments, setAssessments] = useState([]);
@@ -47,7 +48,7 @@ function Assessments() {
     if (selectedJobId && builderMode) {
       const job = jobs.find(j => j.id === selectedJobId);
       if (job) {
-        if (editMode) {
+        if (editMode !== null) {
           const assessment = assessments.find(a => a.id === editMode);
           if (assessment) {
             setBuilder({
@@ -162,7 +163,7 @@ function Assessments() {
     );
   }
 
-  if (previewMode) {
+  if (previewMode !== null) {
     const assessment = assessments.find(a => a.id === previewMode);
     if (!assessment) {
       return (
@@ -353,10 +354,10 @@ function Assessments() {
             ← Back to {selectedJob?.title} Assessments
           </button>
           <h2 style={{ margin: 0 }}>
-            {editMode ? 'Edit Assessment' : 'Assessment Builder'}
+            {editMode !== null ? 'Edit Assessment' : 'Assessment Builder'}
           </h2>
           <p className="muted">
-            {editMode ? 'Editing' : 'Creating'} assessment for {selectedJob?.title}
+            {editMode !== null ? 'Editing' : 'Creating'} assessment for {selectedJob?.title}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
