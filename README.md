@@ -181,33 +181,3 @@ ii  Easier imports and maintenance
 iii Better code organization
 
 iv  Shared state between related components
-
-7. Mobile-First Design
-   Decision: Responsive design starting from mobile breakpoints.
-   Rationale:
-
-i   Better mobile user experience
-
-ii  Progressive enhancement approach
-
-iii Covers majority of users
-
-iv  Easier to scale up than down
-
-8. Build and Deployment
-   Decision: Netlify for hosting with automatic deployments.
-   Rationale:
-
-i   Easy CI/CD integration with Git
-
-ii  Automatic HTTPS and CDN
-
-iii Branch previews for testing
-
-iv  Cost-effective for small projects
-
----
-
-
-
-
